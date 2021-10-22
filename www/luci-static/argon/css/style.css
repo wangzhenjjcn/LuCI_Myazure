@@ -11,6 +11,7 @@
  *      Copyright 2008 Steven Barth <steven@midlink.org>
  *      Copyright 2008 Jo-Philipp Wich <jow@openwrt.org>
  *      Copyright 2012 David Menting <david@nut-bolt.nl>
+ *      Copyright 2021 A.Hleb.King <wangzhenjjcn@gmail.com>
  *
  *  MUI:
  *      https://github.com/muicss/mui
@@ -32,7 +33,7 @@
  */
 
 :root {
-    --blue: #3e3e3e;
+    --blue: #5e72e4;
     --indigo: #5603ad;
     --purple: #8965e0;
     --pink: #f3a4b5;
@@ -1882,42 +1883,42 @@ div>.table>.tbody>.tr:nth-of-type(2n) {
 
 .main>.main-left>.nav>.slide>.menu[data-title=System]:before {
     content: "\e90a";
-    color: #fb6340 !important;
+    color: #3e3e3e !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=Services]:before {
     content: "\e909";
-    color: #11cdef !important;
+    color: #3e3e3e !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=NAS]:before {
     content: "\e90c";
-    color: #f3a4b5 !important;
+    color: #3e3e3e !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=VPN]:before {
     content: "\e90b";
-    color: #172b4d !important;
+    color: #3e3e3e !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=Network]:before {
     content: "\e908";
-    color: #8965e0 !important;
+    color: #3e3e3e !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=Bandwidth_Monitor]:before {
     content: "\e90d";
-    color: #2dce89 !important;
+    color: #3e3e3e !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=Docker]:before {
     content: "\e911";
-    color: #6699ff !important;
+    color: #3e3e3e !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=Logout]:before {
     content: "\e907";
-    color: #32325d !important;
+    color: #3e3e3e !important;
 }
 
 .main>.main-left>.nav>.slide>.menu:after {
