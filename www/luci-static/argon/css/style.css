@@ -3382,6 +3382,10 @@ header>.container>.pull-right>* {
     font-size: 0.875rem;
 }
 
+body>div>div.main-right>header>div>div>div {
+    display: none;
+}
+
 #maincontent>div>fieldset:nth-child(5)>table>tbody>tr:nth-child(4) {
     display: none;
 }
