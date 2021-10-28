@@ -3382,6 +3382,218 @@ header>.container>.pull-right>* {
     font-size: 0.875rem;
 }
 
+#tab\.wireless\.default_radio1\.advanced {
+    display: none;
+}
+
+#maincontent>div>ul>li.tabmenu-item-custom {
+    display: none;
+}
+
+#maincontent>div>ul>li.tabmenu-item-config {
+    display: none;
+}
+
+#tab\.nlbw\.export {
+    display: none;
+}
+
+#cbi-network-lan-ip6assign {
+    display: none;
+}
+
+#cbi-network-lan-ip6hint {
+    display: none;
+}
+
+#cbi-network-lan-ip6ifaceid {
+    display: none;
+}
+
+#cbi-network>fieldset:nth-child(6) {
+    display: none;
+}
+
+#cbi-network>div>fieldset>input {
+    display: none;
+}
+
+#cbi-network>div>fieldset>table>tbody>tr:nth-child(2)>td:nth-child(3)>input.cbi-button.cbi-button-remove {
+    display: none;
+}
+
+#cbi-network>div>fieldset>table>tbody>tr.cbi-section-table-row.cbi-rowstyle-1>td:nth-child(3)>input.cbi-button.cbi-button-remove {
+    display: none;
+}
+
+#cbi-network>div>fieldset>table>tbody>tr:nth-child(4)>td:nth-child(3)>input.cbi-button.cbi-button-remove {
+    display: none;
+}
+
+#cbi-wireless-default_radio0-network {
+    display: none;
+}
+
+#cbi-wireless-default_radio0-wmm {
+    display: none;
+}
+
+#cbi-wireless-default_radio0-hidden {
+    display: none;
+}
+
+#cbi-wireless-default_radio0-disassoc_low_ack {
+    display: none;
+}
+
+#cbi-wireless-default_radio0-ieee80211k {
+    display: none;
+}
+
+#cbi-wireless-default_radio0-ieee80211v {
+    display: none;
+}
+
+#cbi-wireless-default_radio0-ieee80211r {
+    display: none;
+}
+
+#cbi-wireless-default_radio0-ieee80211w {
+    display: none;
+}
+
+#cbi-wireless-default_radio0-wpa_disable_eapol_key_retries {
+    display: none;
+}
+
+#tab\.wireless\.default_radio0\.advanced {
+    display: none;
+}
+
+#cbi-wireless-radio0-txpower {
+    display: none;
+}
+
+#cbi-wireless-radio0-noscan {
+    display: none;
+}
+
+#cbi-wireless-radio0-vendor_vht {
+    display: none;
+}
+
+#cbi-wireless-default_radio1-ieee80211w {
+    display: none;
+}
+
+#cbi-wireless-default_radio1-wpa_disable_eapol_key_retries {
+    display: none;
+}
+
+#cbi-wireless-default_radio1-ieee80211r {
+    display: none;
+}
+
+#cbi-wireless-default_radio1-ieee80211v {
+    display: none;
+}
+
+#cbi-wireless-default_radio1-disassoc_low_ack {
+    display: none;
+}
+
+#cbi-wireless-default_radio1-ieee80211k {
+    display: none;
+}
+
+#cbi-wireless-default_radio1-hidden {
+    display: none;
+}
+
+#cbi-wireless-default_radio1-wmm {
+    display: none;
+}
+
+#tab\.wireless\.radio0\.advanced {
+    display: none;
+}
+
+#tab\.wireless\.radio1\.advanced {
+    display: none;
+}
+
+#cbi-wireless-radio1-noscan {
+    display: none;
+}
+
+#cbi-wireless-radio1-vendor_vht {
+    display: none;
+}
+
+#cbi-wireless-radio1-txpower {
+    display: none;
+}
+
+#cbi-wireless-default_radio1-network {
+    display: none;
+}
+
+#maincontent>div>div>fieldset:nth-child(2)>table>tbody>tr:nth-child(1)>td:nth-child(3)>form:nth-child(1)>input.cbi-button.cbi-button-find {
+    display: none;
+}
+
+#maincontent>div>div>fieldset:nth-child(2)>table>tbody>tr:nth-child(1)>td:nth-child(3)>form:nth-child(2)>input.cbi-button.cbi-button-add {
+    display: none;
+}
+
+#maincontent>div>div>fieldset:nth-child(1)>table>tbody>tr:nth-child(1)>td:nth-child(3)>form:nth-child(1)>input.cbi-button.cbi-button-find {
+    display: none;
+}
+
+#maincontent>div>div>fieldset:nth-child(1)>table>tbody>tr:nth-child(1)>td:nth-child(3)>form:nth-child(2)>input.cbi-button.cbi-button-add {
+    display: none;
+}
+
+#maincontent>div>div>fieldset:nth-child(1)>table>tbody>tr.cbi-section-table-row.cbi-rowstyle-1>td:nth-child(4)>input.cbi-button.cbi-button-remove {
+    display: none;
+}
+
+#maincontent>div>div>fieldset:nth-child(2)>table>tbody>tr.cbi-section-table-row.cbi-rowstyle-1>td:nth-child(4)>input.cbi-button.cbi-button-remove {
+    display: none;
+}
+
+#cbi-dhcp {
+    display: none;
+}
+
+#tab\.network\.wan\.advanced {
+    display: none;
+}
+
+#maincontent>div>ul>li.tabmenu-item-wan6 {
+    display: none;
+}
+
+#tab\.network\.wan\.physical {
+    display: none;
+}
+
+#tab\.network\.wan\.firewall {
+    display: none;
+}
+
+#tab\.network\.lan\.physical {
+    display: none;
+}
+
+#tab\.network\.lan\.firewall {
+    display: none;
+}
+
+#tab\.network\.lan\.advanced {
+    display: none;
+}
+
 body>div>div.main-right>header>div>div>div {
     display: none;
 }
