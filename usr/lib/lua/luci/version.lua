@@ -18,3 +18,5 @@ end
 
 luciname    = "WangZhenLuCIa"
 luciversion = "j8u2r48uhBETA"
+distname    = "OpenWrt"
+distversion = "MyazureBeta3"
