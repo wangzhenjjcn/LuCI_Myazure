@@ -5,7 +5,6 @@ module "luci.version"
  
 distname    = "OpenWrt"
 distversion = "WangZhenDesignedV1"
- 
-
 luciname    = "Myazure"
 luciversion = "殷芷依定制版"
+hostn	    = "殷芷依定制版HiWifi"
