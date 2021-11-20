@@ -2,9 +2,9 @@ local pcall, dofile, _G = pcall, dofile, _G
 
 module "luci.version"
 
- 
 distname    = "OpenWrt"
-distversion = "WangZhenDesignedV1"
-luciname    = "Myazure"
-luciversion = "æ®·èŠ·ä¾å®šåˆ¶ç‰ˆ"
-hostn	    = "æ®·èŠ·ä¾å®šåˆ¶ç‰ˆHiWifi"
+distversion = "ÒóÜÆÒÀ¶¨ÖÆ°æ"
+ 
+
+luciname    = "MyazureDesign"
+luciversion = "WangZhenForXiaoCongMing"
