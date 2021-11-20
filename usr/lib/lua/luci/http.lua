@@ -1,210 +1,269 @@
-local e=require"luci.ltn12"
-local a=require"luci.http.protocol"
-local i=require"luci.util"
-local r=require"string"
-local t=require"coroutine"
-local d=require"table"
-local h,o,e,e,n,s=
-ipairs,pairs,next,type,tostring,error
-module"luci.http"
-context=i.threadlocal()
-Request=i.class()
-function Request.__init__(e,t,o,i)
-e.input=o
-e.error=i
-e.filehandler=nil
-e.message={
-env=t,
-headers={},
-params=a.urldecode_params(t.QUERY_STRING or""),
-}
-e.parsed_input=false
+-- Copyright 2008 Steven Barth <steven@midlink.org>
+-- Licensed to the public under the Apache License 2.0.
+
+local ltn12 = require "luci.ltn12"
+local protocol = require "luci.http.protocol"
+local util  = require "luci.util"
+local string = require "string"
+local coroutine = require "coroutine"
+local table = require "table"
+
+local ipairs, pairs, next, type, tostring, error =
+	ipairs, pairs, next, type, tostring, error
+
+module "luci.http"
+
+context = util.threadlocal()
+
+Request = util.class()
+function Request.__init__(self, env, sourcein, sinkerr)
+	self.input = sourcein
+	self.error = sinkerr
+
+
+	-- File handler nil by default to let .content() work
+	self.filehandler = nil
+
+	-- HTTP-Message table
+	self.message = {
+		env = env,
+		headers = {},
+		params = protocol.urldecode_params(env.QUERY_STRING or ""),
+	}
+
+	self.parsed_input = false
 end
-function Request.formvalue(e,t,a)
-if not a and not e.parsed_input then
-e:_parse_input()
+
+function Request.formvalue(self, name, noparse)
+	if not noparse and not self.parsed_input then
+		self:_parse_input()
+	end
+
+	if name then
+		return self.message.params[name]
+	else
+		return self.message.params
+	end
 end
-if t then
-return e.message.params[t]
-else
-return e.message.params
+
+function Request.formvaluetable(self, prefix)
+	local vals = {}
+	prefix = prefix and prefix .. "." or "."
+
+	if not self.parsed_input then
+		self:_parse_input()
+	end
+
+	local void = self.message.params[nil]
+	for k, v in pairs(self.message.params) do
+		if k:find(prefix, 1, true) == 1 then
+			vals[k:sub(#prefix + 1)] = tostring(v)
+		end
+	end
+
+	return vals
 end
+
+function Request.content(self)
+	if not self.parsed_input then
+		self:_parse_input()
+	end
+
+	return self.message.content, self.message.content_length
 end
-function Request.formvaluetable(t,e)
-local a={}
-e=e and e.."."or"."
-if not t.parsed_input then
-t:_parse_input()
+
+function Request.getcookie(self, name)
+  local c = string.gsub(";" .. (self:getenv("HTTP_COOKIE") or "") .. ";", "%s*;%s*", ";")
+  local p = ";" .. name .. "=(.-);"
+  local i, j, value = c:find(p)
+  return value and urldecode(value)
 end
-local i=t.message.params[nil]
-for t,o in o(t.message.params)do
-if t:find(e,1,true)==1 then
-a[t:sub(#e+1)]=n(o)
+
+function Request.getenv(self, name)
+	if name then
+		return self.message.env[name]
+	else
+		return self.message.env
+	end
 end
+
+function Request.setfilehandler(self, callback)
+	self.filehandler = callback
+
+	-- If input has already been parsed then any files are either in temporary files
+	-- or are in self.message.params[key]
+	if self.parsed_input then
+		for param, value in pairs(self.message.params) do
+		repeat
+			-- We're only interested in files
+			if (not value["file"]) then break end
+			-- If we were able to write to temporary file
+			if (value["fd"]) then 
+				fd = value["fd"]
+				local eof = false
+				repeat	
+					filedata = fd:read(1024)
+					if (filedata:len() < 1024) then
+						eof = true
+					end
+					callback({ name=value["name"], file=value["file"] }, filedata, eof)
+				until (eof)
+				fd:close()
+				value["fd"] = nil
+			-- We had to read into memory
+			else
+				-- There should only be one numbered value in table - the data
+				for k, v in ipairs(value) do
+					callback({ name=value["name"], file=value["file"] }, v, true)
+				end
+			end
+		until true
+		end
+	end
 end
-return a
+
+function Request._parse_input(self)
+	protocol.parse_message_body(
+		 self.input,
+		 self.message,
+		 self.filehandler
+	)
+	self.parsed_input = true
 end
-function Request.content(e)
-if not e.parsed_input then
-e:_parse_input()
-end
-return e.message.content,e.message.content_length
-end
-function Request.getcookie(t,e)
-local t=r.gsub(";"..(t:getenv("HTTP_COOKIE")or"")..";","%s*;%s*",";")
-local e=";"..e.."=(.-);"
-local t,t,e=t:find(e)
-return e and urldecode(e)
-end
-function Request.getenv(e,t)
-if t then
-return e.message.env[t]
-else
-return e.message.env
-end
-end
-function Request.setfilehandler(e,a)
-e.filehandler=a
-if e.parsed_input then
-for t,e in o(e.message.params)do
-repeat
-if(not e["file"])then break end
-if(e["fd"])then
-fd=e["fd"]
-local t=false
-repeat
-filedata=fd:read(1024)
-if(filedata:len()<1024)then
-t=true
-end
-a({name=e["name"],file=e["file"]},filedata,t)
-until(t)
-fd:close()
-e["fd"]=nil
-else
-for o,t in h(e)do
-a({name=e["name"],file=e["file"]},t,true)
-end
-end
-until true
-end
-end
-end
-function Request._parse_input(e)
-a.parse_message_body(
-e.input,
-e.message,
-e.filehandler
-)
-e.parsed_input=true
-end
+
 function close()
-if not context.eoh then
-context.eoh=true
-t.yield(3)
+	if not context.eoh then
+		context.eoh = true
+		coroutine.yield(3)
+	end
+
+	if not context.closed then
+		context.closed = true
+		coroutine.yield(5)
+	end
 end
-if not context.closed then
-context.closed=true
-t.yield(5)
-end
-end
+
 function content()
-return context.request:content()
+	return context.request:content()
 end
-function formvalue(t,e)
-return context.request:formvalue(t,e)
+
+function formvalue(name, noparse)
+	return context.request:formvalue(name, noparse)
 end
-function formvaluetable(e)
-return context.request:formvaluetable(e)
+
+function formvaluetable(prefix)
+	return context.request:formvaluetable(prefix)
 end
-function getcookie(e)
-return context.request:getcookie(e)
+
+function getcookie(name)
+	return context.request:getcookie(name)
 end
-function getenv(e)
-return context.request:getenv(e)
+
+-- or the environment table itself.
+function getenv(name)
+	return context.request:getenv(name)
 end
-function setfilehandler(e)
-return context.request:setfilehandler(e)
+
+function setfilehandler(callback)
+	return context.request:setfilehandler(callback)
 end
-function header(e,a)
-if not context.headers then
-context.headers={}
+
+function header(key, value)
+	if not context.headers then
+		context.headers = {}
+	end
+	context.headers[key:lower()] = value
+	coroutine.yield(2, key, value)
 end
-context.headers[e:lower()]=a
-t.yield(2,e,a)
+
+function prepare_content(mime)
+	if not context.headers or not context.headers["content-type"] then
+		if mime == "application/xhtml+xml" then
+			if not getenv("HTTP_ACCEPT") or
+			  not getenv("HTTP_ACCEPT"):find("application/xhtml+xml", nil, true) then
+				mime = "text/html; charset=UTF-8"
+			end
+			header("Vary", "Accept")
+		end
+		header("Content-Type", mime)
+	end
 end
-function prepare_content(e)
-if not context.headers or not context.headers["content-type"]then
-if e=="application/xhtml+xml"then
-if not getenv("HTTP_ACCEPT")or
-not getenv("HTTP_ACCEPT"):find("application/xhtml+xml",nil,true)then
-e="text/html; charset=UTF-8"
-end
-header("Vary","Accept")
-end
-header("Content-Type",e)
-end
-end
+
 function source()
-return context.request.input
+	return context.request.input
 end
-function status(e,a)
-e=e or 200
-a=a or"OK"
-context.status=e
-t.yield(1,e,a)
+
+function status(code, message)
+	code = code or 200
+	message = message or "OK"
+	context.status = code
+	coroutine.yield(1, code, message)
 end
-function write(e,a)
-if not e then
-if a then
-s(a)
-else
-close()
+
+-- This function is as a valid LTN12 sink.
+-- If the content chunk is nil this function will automatically invoke close.
+function write(content, src_err)
+	if not content then
+		if src_err then
+			error(src_err)
+		else
+			close()
+		end
+		return true
+	elseif #content == 0 then
+		return true
+	else
+		if not context.eoh then
+			if not context.status then
+				status()
+			end
+			if not context.headers or not context.headers["content-type"] then
+				header("Content-Type", "text/html; charset=utf-8")
+			end
+			if not context.headers["cache-control"] then
+				header("Cache-Control", "no-cache")
+				header("Pragma", "no-cache")
+				header("Expires", "0")
+			end
+
+
+			context.eoh = true
+			coroutine.yield(3)
+		end
+		coroutine.yield(4, content)
+		return true
+	end
 end
-return true
-elseif#e==0 then
-return true
-else
-if not context.eoh then
-if not context.status then
-status()
+
+function splice(fd, size)
+	coroutine.yield(6, fd, size)
 end
-if not context.headers or not context.headers["content-type"]then
-header("Content-Type","text/html; charset=utf-8")
+
+function redirect(url)
+	if url == "" then url = "/" end
+	status(302, "Found")
+	header("Location", url)
+	close()
 end
-if not context.headers["cache-control"]then
-header("Cache-Control","no-cache")
-header("Pragma","no-cache")
-header("Expires","0")
+
+function build_querystring(q)
+	local s = { "?" }
+
+	for k, v in pairs(q) do
+		if #s > 1 then s[#s+1] = "&" end
+
+		s[#s+1] = urldecode(k)
+		s[#s+1] = "="
+		s[#s+1] = urldecode(v)
+	end
+
+	return table.concat(s, "")
 end
-context.eoh=true
-t.yield(3)
-end
-t.yield(4,e)
-return true
-end
-end
-function splice(e,a)
-t.yield(6,e,a)
-end
-function redirect(e)
-if e==""then e="/"end
-status(302,"Found")
-header("Location",e)
-close()
-end
-function build_querystring(t)
-local e={"?"}
-for a,t in o(t)do
-if#e>1 then e[#e+1]="&"end
-e[#e+1]=urldecode(a)
-e[#e+1]="="
-e[#e+1]=urldecode(t)
-end
-return d.concat(e,"")
-end
-urldecode=a.urldecode
-urlencode=a.urlencode
-function write_json(e)
-i.serialize_json(e,write)
+
+urldecode = protocol.urldecode
+
+urlencode = protocol.urlencode
+
+function write_json(x)
+	util.serialize_json(x, write)
 end

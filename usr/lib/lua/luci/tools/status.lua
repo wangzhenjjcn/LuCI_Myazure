@@ -1,211 +1,230 @@
-module("luci.tools.status",package.seeall)
-local s=require"luci.model.uci".cursor()
-local function c(o)
-local e={}
-local r=require"nixio.fs"
-local t="/tmp/dhcp.leases"
-s:foreach("dhcp","dnsmasq",
-function(e)
-if e.leasefile and r.access(e.leasefile)then
-t=e.leasefile
-return false
+-- Copyright 2011 Jo-Philipp Wich <jow@openwrt.org>
+-- Licensed to the public under the Apache License 2.0.
+
+module("luci.tools.status", package.seeall)
+
+local uci = require "luci.model.uci".cursor()
+
+local function dhcp_leases_common(family)
+	local rv = { }
+	local nfs = require "nixio.fs"
+	local leasefile = "/tmp/dhcp.leases"
+
+	uci:foreach("dhcp", "dnsmasq",
+		function(s)
+			if s.leasefile and nfs.access(s.leasefile) then
+				leasefile = s.leasefile
+				return false
+			end
+		end)
+
+	local fd = io.open(leasefile, "r")
+	if fd then
+		while true do
+			local ln = fd:read("*l")
+			if not ln then
+				break
+			else
+				local ts, mac, ip, name, duid = ln:match("^(%d+) (%S+) (%S+) (%S+) (%S+)")
+				local expire = tonumber(ts) or 0
+				if ts and mac and ip and name and duid then
+					if family == 4 and not ip:match(":") then
+						rv[#rv+1] = {
+							expires  = (expire ~= 0) and os.difftime(expire, os.time()),
+							macaddr  = mac,
+							ipaddr   = ip,
+							hostname = (name ~= "*") and name
+						}
+					elseif family == 6 and ip:match(":") then
+						rv[#rv+1] = {
+							expires  = (expire ~= 0) and os.difftime(expire, os.time()),
+							ip6addr  = ip,
+							duid     = (duid ~= "*") and duid,
+							hostname = (name ~= "*") and name
+						}
+					end
+				end
+			end
+		end
+		fd:close()
+	end
+
+	local lease6file = "/tmp/hosts/odhcpd"
+	uci:foreach("dhcp", "odhcpd",
+		function(t)
+			if t.leasefile and nfs.access(t.leasefile) then
+				lease6file = t.leasefile
+				return false
+			end
+		end)
+	local fd = io.open(lease6file, "r")
+	if fd then
+		while true do
+			local ln = fd:read("*l")
+			if not ln then
+				break
+			else
+				local iface, duid, iaid, name, ts, id, length, ip = ln:match("^# (%S+) (%S+) (%S+) (%S+) (-?%d+) (%S+) (%S+) (.*)")
+				local expire = tonumber(ts) or 0
+				if ip and iaid ~= "ipv4" and family == 6 then
+					rv[#rv+1] = {
+						expires  = (expire >= 0) and os.difftime(expire, os.time()),
+						duid     = duid,
+						ip6addr  = ip,
+						hostname = (name ~= "-") and name
+					}
+				elseif ip and iaid == "ipv4" and family == 4 then
+					local mac, mac1, mac2, mac3, mac4, mac5, mac6
+					if duid and type(duid) == "string" then
+						 mac1, mac2, mac3, mac4, mac5, mac6 = duid:match("^(%x%x)(%x%x)(%x%x)(%x%x)(%x%x)(%x%x)$")
+					end
+					if not (mac1 and mac2 and mac3 and mac4 and mac5 and mac6) then
+						mac = "FF:FF:FF:FF:FF:FF"
+					else
+						mac = mac1..":"..mac2..":"..mac3..":"..mac4..":"..mac5..":"..mac6
+					end
+					rv[#rv+1] = {
+						expires  = (expire >= 0) and os.difftime(expire, os.time()),
+						macaddr  = duid,
+						macaddr  = mac:lower(),
+						ipaddr   = ip,
+						hostname = (name ~= "-") and name
+					}
+				end
+			end
+		end
+		fd:close()
+	end
+
+	return rv
 end
-end)
-local n=io.open(t,"r")
-if n then
-while true do
-local t=n:read("*l")
-if not t then
-break
-else
-local h,s,t,a,n=t:match("^(%d+) (%S+) (%S+) (%S+) (%S+)")
-local i=tonumber(h)or 0
-if h and s and t and a and n then
-if o==4 and not t:match(":")then
-e[#e+1]={
-expires=(i~=0)and os.difftime(i,os.time()),
-macaddr=s,
-ipaddr=t,
-hostname=(a~="*")and a
-}
-elseif o==6 and t:match(":")then
-e[#e+1]={
-expires=(i~=0)and os.difftime(i,os.time()),
-ip6addr=t,
-duid=(n~="*")and n,
-hostname=(a~="*")and a
-}
-end
-end
-end
-end
-n:close()
-end
-local t="/tmp/hosts/odhcpd"
-s:foreach("dhcp","odhcpd",
-function(e)
-if e.leasefile and r.access(e.leasefile)then
-t=e.leasefile
-return false
-end
-end)
-local l=io.open(t,"r")
-if l then
-while true do
-local t=l:read("*l")
-if not t then
-break
-else
-local h,t,s,n,i,h,h,a=t:match("^# (%S+) (%S+) (%S+) (%S+) (-?%d+) (%S+) (%S+) (.*)")
-local i=tonumber(i)or 0
-if a and s~="ipv4"and o==6 then
-e[#e+1]={
-expires=(i>=0)and os.difftime(i,os.time()),
-duid=t,
-ip6addr=a,
-hostname=(n~="-")and n
-}
-elseif a and s=="ipv4"and o==4 then
-local s,o,d,h,u,l,r
-if t and type(t)=="string"then
-o,d,h,u,l,r=t:match("^(%x%x)(%x%x)(%x%x)(%x%x)(%x%x)(%x%x)$")
-end
-if not(o and d and h and u and l and r)then
-s="FF:FF:FF:FF:FF:FF"
-else
-s=o..":"..d..":"..h..":"..u..":"..l..":"..r
-end
-e[#e+1]={
-expires=(i>=0)and os.difftime(i,os.time()),
-macaddr=t,
-macaddr=s:lower(),
-ipaddr=a,
-hostname=(n~="-")and n
-}
-end
-end
-end
-l:close()
-end
-return e
-end
+
 function dhcp_leases()
-return c(4)
+	return dhcp_leases_common(4)
 end
+
 function dhcp6_leases()
-return c(6)
+	return dhcp_leases_common(6)
 end
+
 function wifi_networks()
-local o={}
-local e=require"luci.model.network".init()
-local t
-for e,t in ipairs(e:get_wifidevs())do
-local a={
-up=t:is_up(),
-device=t:name(),
-name=t:get_i18n(),
-networks={}
-}
-local e
-for i,e in ipairs(t:get_wifinets())do
-a.networks[#a.networks+1]={
-name=e:shortname(),
-link=e:adminlink(),
-up=e:is_up(),
-mode=e:active_mode(),
-ssid=e:active_ssid(),
-bssid=e:active_bssid(),
-encryption=e:active_encryption(),
-frequency=e:frequency(),
-channel=e:channel(),
-signal=e:signal(),
-quality=e:signal_percent(),
-noise=e:noise(),
-bitrate=e:bitrate(),
-ifname=e:ifname(),
-assoclist=e:assoclist(),
-country=e:country(),
-txpower=e:txpower(),
-txpoweroff=e:txpower_offset(),
-disabled=(t:get("disabled")=="1"or
-e:get("disabled")=="1")
-}
+	local rv = { }
+	local ntm = require "luci.model.network".init()
+
+	local dev
+	for _, dev in ipairs(ntm:get_wifidevs()) do
+		local rd = {
+			up       = dev:is_up(),
+			device   = dev:name(),
+			name     = dev:get_i18n(),
+			networks = { }
+		}
+
+		local net
+		for _, net in ipairs(dev:get_wifinets()) do
+			rd.networks[#rd.networks+1] = {
+				name       = net:shortname(),
+				link       = net:adminlink(),
+				up         = net:is_up(),
+				mode       = net:active_mode(),
+				ssid       = net:active_ssid(),
+				bssid      = net:active_bssid(),
+				encryption = net:active_encryption(),
+				frequency  = net:frequency(),
+				channel    = net:channel(),
+				signal     = net:signal(),
+				quality    = net:signal_percent(),
+				noise      = net:noise(),
+				bitrate    = net:bitrate(),
+				ifname     = net:ifname(),
+				assoclist  = net:assoclist(),
+				country    = net:country(),
+				txpower    = net:txpower(),
+				txpoweroff = net:txpower_offset(),
+				disabled   = (dev:get("disabled") == "1" or
+				             net:get("disabled") == "1")
+			}
+		end
+
+		rv[#rv+1] = rd
+	end
+
+	return rv
 end
-o[#o+1]=a
+
+function wifi_network(id)
+	local ntm = require "luci.model.network".init()
+	local net = ntm:get_wifinet(id)
+	if net then
+		local dev = net:get_device()
+		if dev then
+			return {
+				id         = id,
+				name       = net:shortname(),
+				link       = net:adminlink(),
+				up         = net:is_up(),
+				mode       = net:active_mode(),
+				ssid       = net:active_ssid(),
+				bssid      = net:active_bssid(),
+				encryption = net:active_encryption(),
+				frequency  = net:frequency(),
+				channel    = net:channel(),
+				signal     = net:signal(),
+				quality    = net:signal_percent(),
+				noise      = net:noise(),
+				bitrate    = net:bitrate(),
+				ifname     = net:ifname(),
+				assoclist  = net:assoclist(),
+				country    = net:country(),
+				txpower    = net:txpower(),
+				txpoweroff = net:txpower_offset(),
+				disabled   = (dev:get("disabled") == "1" or
+				              net:get("disabled") == "1"),
+				device     = {
+					up     = dev:is_up(),
+					device = dev:name(),
+					name   = dev:get_i18n()
+				}
+			}
+		end
+	end
+	return { }
 end
-return o
-end
-function wifi_network(a)
-local e=require"luci.model.network".init()
-local e=e:get_wifinet(a)
-if e then
-local t=e:get_device()
-if t then
-return{
-id=a,
-name=e:shortname(),
-link=e:adminlink(),
-up=e:is_up(),
-mode=e:active_mode(),
-ssid=e:active_ssid(),
-bssid=e:active_bssid(),
-encryption=e:active_encryption(),
-frequency=e:frequency(),
-channel=e:channel(),
-signal=e:signal(),
-quality=e:signal_percent(),
-noise=e:noise(),
-bitrate=e:bitrate(),
-ifname=e:ifname(),
-assoclist=e:assoclist(),
-country=e:country(),
-txpower=e:txpower(),
-txpoweroff=e:txpower_offset(),
-disabled=(t:get("disabled")=="1"or
-e:get("disabled")=="1"),
-device={
-up=t:is_up(),
-device=t:name(),
-name=t:get_i18n()
-}
-}
-end
-end
-return{}
-end
-function switch_status(e)
-local t
-local i={}
-for o in e:gmatch("[^%s,]+")do
-local a={}
-local t=io.popen("swconfig dev %q show"%o,"r")
-if t then
-local e
-repeat
-e=t:read("*l")
-if e then
-local t,i=e:match("port:(%d+) link:(%w+)")
-if t then
-local s=e:match(" speed:(%d+)")
-local n=e:match(" (%w+)-duplex")
-local o=e:match(" (txflow)")
-local h=e:match(" (rxflow)")
-local e=e:match(" (auto)")
-a[#a+1]={
-port=tonumber(t)or 0,
-speed=tonumber(s)or 0,
-link=(i=="up"),
-duplex=(n=="full"),
-rxflow=(not not h),
-txflow=(not not o),
-auto=(not not e)
-}
-end
-end
-until not e
-t:close()
-end
-i[o]=a
-end
-return i
+
+function switch_status(devs)
+	local dev
+	local switches = { }
+	for dev in devs:gmatch("[^%s,]+") do
+		local ports = { }
+		local swc = io.popen("swconfig dev %q show" % dev, "r")
+		if swc then
+			local l
+			repeat
+				l = swc:read("*l")
+				if l then
+					local port, up = l:match("port:(%d+) link:(%w+)")
+					if port then
+						local speed  = l:match(" speed:(%d+)")
+						local duplex = l:match(" (%w+)-duplex")
+						local txflow = l:match(" (txflow)")
+						local rxflow = l:match(" (rxflow)")
+						local auto   = l:match(" (auto)")
+
+						ports[#ports+1] = {
+							port   = tonumber(port) or 0,
+							speed  = tonumber(speed) or 0,
+							link   = (up == "up"),
+							duplex = (duplex == "full"),
+							rxflow = (not not rxflow),
+							txflow = (not not txflow),
+							auto   = (not not auto)
+						}
+					end
+				end
+			until not l
+			swc:close()
+		end
+		switches[dev] = ports
+	end
+	return switches
 end

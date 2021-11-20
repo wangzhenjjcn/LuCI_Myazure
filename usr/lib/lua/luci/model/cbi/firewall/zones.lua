@@ -1,57 +1,78 @@
-local n=require"luci.dispatcher"
-local i=require"luci.model.firewall"
-local t,e,o,a,s,s
-t=Map("firewall",
-translate("Firewall - Zone Settings"),
-translate("The firewall creates zones over your network interfaces to control network traffic flow."))
-i.init(t.uci)
-e=t:section(TypedSection,"defaults",translate("General Settings"))
-e.anonymous=true
-e.addremove=false
-e:option(Flag,"syn_flood",translate("Enable SYN-flood protection"))
-o=e:option(Flag,"drop_invalid",translate("Drop invalid packets"))
-e:option(Flag,"fullcone",translate("Enable FullCone NAT"))
-a={
-e:option(ListValue,"input",translate("Input")),
-e:option(ListValue,"output",translate("Output")),
-e:option(ListValue,"forward",translate("Forward"))
+-- Copyright 2008 Steven Barth <steven@midlink.org>
+-- Licensed to the public under the Apache License 2.0.
+
+local ds = require "luci.dispatcher"
+local fw = require "luci.model.firewall"
+
+local m, s, o, p, i, v
+
+m = Map("firewall",
+	translate("Firewall - Zone Settings"),
+	translate("The firewall creates zones over your network interfaces to control network traffic flow."))
+
+fw.init(m.uci)
+
+s = m:section(TypedSection, "defaults", translate("General Settings"))
+s.anonymous = true
+s.addremove = false
+
+s:option(Flag, "syn_flood", translate("Enable SYN-flood protection"))
+
+o = s:option(Flag, "drop_invalid", translate("Drop invalid packets"))
+
+s:option(Flag, "fullcone", translate("Enable FullCone NAT"))
+
+p = {
+	s:option(ListValue, "input", translate("Input")),
+	s:option(ListValue, "output", translate("Output")),
+	s:option(ListValue, "forward", translate("Forward"))
 }
-for a,t in ipairs(a)do
-t:value("REJECT",translate("reject"))
-t:value("DROP",translate("drop"))
-t:value("ACCEPT",translate("accept"))
+
+for i, v in ipairs(p) do
+	v:value("REJECT", translate("reject"))
+	v:value("DROP", translate("drop"))
+	v:value("ACCEPT", translate("accept"))
 end
-e=t:section(TypedSection,"zone",translate("Zones"))
-e.template="cbi/tblsection"
-e.anonymous=true
-e.addremove=true
-e.extedit=n.build_url("admin","network","firewall","zones","%s")
-function e.create(e)
-local e=i:new_zone()
-if e then
-luci.http.redirect(
-n.build_url("admin","network","firewall","zones",e.sid)
-)
+
+
+s = m:section(TypedSection, "zone", translate("Zones"))
+s.template = "cbi/tblsection"
+s.anonymous = true
+s.addremove = true
+s.extedit   = ds.build_url("admin", "network", "firewall", "zones", "%s")
+
+function s.create(self)
+	local z = fw:new_zone()
+	if z then
+		luci.http.redirect(
+			ds.build_url("admin", "network", "firewall", "zones", z.sid)
+		)
+	end
 end
+
+function s.remove(self, section)
+	return fw:del_zone(section)
 end
-function e.remove(t,e)
-return i:del_zone(e)
+
+o = s:option(DummyValue, "_info", translate("Zone ⇒ Forwardings"))
+o.template = "cbi/firewall_zoneforwards"
+o.cfgvalue = function(self, section)
+	return self.map:get(section, "name")
 end
-o=e:option(DummyValue,"_info",translate("Zone ⇒ Forwardings"))
-o.template="cbi/firewall_zoneforwards"
-o.cfgvalue=function(e,t)
-return e.map:get(t,"name")
-end
-a={
-e:option(ListValue,"input",translate("Input")),
-e:option(ListValue,"output",translate("Output")),
-e:option(ListValue,"forward",translate("Forward"))
+
+p = {
+	s:option(ListValue, "input", translate("Input")),
+	s:option(ListValue, "output", translate("Output")),
+	s:option(ListValue, "forward", translate("Forward"))
 }
-for a,t in ipairs(a)do
-t:value("REJECT",translate("reject"))
-t:value("DROP",translate("drop"))
-t:value("ACCEPT",translate("accept"))
+
+for i, v in ipairs(p) do
+	v:value("REJECT", translate("reject"))
+	v:value("DROP", translate("drop"))
+	v:value("ACCEPT", translate("accept"))
 end
-e:option(Flag,"masq",translate("Masquerading"))
-e:option(Flag,"mtu_fix",translate("MSS clamping"))
-return t
+
+s:option(Flag, "masq", translate("Masquerading"))
+s:option(Flag, "mtu_fix", translate("MSS clamping"))
+
+return m

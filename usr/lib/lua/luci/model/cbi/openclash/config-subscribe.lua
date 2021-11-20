@@ -14,17 +14,15 @@ font_off = [[</font>]]
 bold_on  = [[<strong>]]
 bold_off = [[</strong>]]
 
-m = Map(openclash,  translate("Config Update"))
+m = Map("openclash",  translate("Config Update"))
 m.pageaction = false
 
 s = m:section(TypedSection, "openclash")
 s.anonymous = true
 
 ---- update Settings
-o = s:option(ListValue, "auto_update", translate("Auto Update"))
+o = s:option(Flag, "auto_update", translate("Auto Update"))
 o.description = translate("Auto Update Server subscription")
-o:value("0", translate("Disable"))
-o:value("1", translate("Enable"))
 o.default=0
 
 o = s:option(ListValue, "config_auto_update_mode", translate("Update Mode"))
@@ -62,15 +60,22 @@ o:depends("config_auto_update_mode", "1")
 o.rmempty = true
 
 -- [[ Edit Server ]] --
-s = m:section(TypedSection, "config_subscribe")
+s = m:section(TypedSection, "config_subscribe", translate("Config Subscribe Edit"))
 s.anonymous = true
 s.addremove = true
-s.sortable = false
+s.sortable = true
 s.template = "cbi/tblsection"
-s.rmempty = false
+s.extedit = luci.dispatcher.build_url("admin/services/openclash/config-subscribe-edit/%s")
+function s.create(...)
+	local sid = TypedSection.create(...)
+	if sid then
+		luci.http.redirect(s.extedit % sid)
+		return
+	end
+end
 
 ---- enable flag
-o = s:option(Flag, "enabled", translate("Enable"), font_red..bold_on..translate("(Enable or Disable Subscribe)")..bold_off..font_off)
+o = s:option(Flag, "enabled", translate("Enable"))
 o.rmempty     = false
 o.default     = o.enabled
 o.cfgvalue    = function(...)
@@ -78,36 +83,26 @@ o.cfgvalue    = function(...)
 end
 
 ---- name
-o = s:option(Value, "name", translate("Config Alias"))
-o.description = font_red..bold_on..translate("(Name For Distinguishing)")..bold_off..font_off
-o.placeholder = translate("config")
-o.rmempty = true
-
----- type
-o = s:option(ListValue, "type", translate("Subscribe Type"))
-o.description = font_red..bold_on..translate("(Power By fndroid)")..bold_off..font_off
-o:value("clash", translate("Clash"))
-o:value("v2rayn", translate("V2rayN"))
-o:value("surge", translate("Surge"))
-o.default="clash"
-o.rempty = false
+o = s:option(DummyValue, "name", translate("Config Alias"))
+function o.cfgvalue(...)
+	return Value.cfgvalue(...) or translate("config")
+end
 
 ---- address
 o = s:option(Value, "address", translate("Subscribe Address"))
-o.description = font_red..bold_on..translate("(Not Null)")..bold_off..font_off
-o.placeholder = translate("Not Null")
-o.datatype = "or(host, string)"
-o.rmempty = false
+function o.cfgvalue(...)
+	return Value.cfgvalue(...) or translate("None")
+end
 
----- key
-o = s:option(DynamicList, "keyword", font_red..bold_on..translate("Keyword Match")..bold_off..font_off)
-o.description = font_red..bold_on..translate("(eg: hk or tw&bgp)")..bold_off..font_off
-o.rmempty = true
-
----- exkey
-o = s:option(DynamicList, "ex_keyword", font_red..bold_on..translate("Exclude Keyword Match")..bold_off..font_off)
-o.description = font_red..bold_on..translate("(eg: hk or tw&bgp)")..bold_off..font_off
-o.rmempty = true
+---- template
+o = s:option(DummyValue, "template", translate("Template Name"))
+function o.cfgvalue(...)
+	if Value.cfgvalue(...) ~= "0" then
+		return Value.cfgvalue(...) or translate("None")
+	else
+		return translate("Custom Template")
+	end
+end
 
 local t = {
     {Commit, Apply}
@@ -115,16 +110,16 @@ local t = {
 
 a = m:section(Table, t)
 
-o = a:option(Button, "Commit") 
-o.inputtitle = translate("Commit Configurations")
+o = a:option(Button, "Commit", " ")
+o.inputtitle = translate("Commit Settings")
 o.inputstyle = "apply"
 o.write = function()
 	fs.unlink("/tmp/Proxy_Group")
   m.uci:commit("openclash")
 end
 
-o = a:option(Button, "Apply")
-o.inputtitle = translate("Apply Configurations")
+o = a:option(Button, "Apply", " ")
+o.inputtitle = translate("Update Config")
 o.inputstyle = "apply"
 o.write = function()
 	fs.unlink("/tmp/Proxy_Group")
@@ -134,7 +129,7 @@ o.write = function()
 		function(s)
 		  if s.name ~= "" and s.name ~= nil and s.enabled == "1" then
 			   local back_cfg_path_yaml="/etc/openclash/backup/" .. s.name .. ".yaml"
-			   local back_cfg_path_yml="/etc/openclash/backup/" .. s.name .. ".yaml"
+			   local back_cfg_path_yml="/etc/openclash/backup/" .. s.name .. ".yml"
 			   fs.unlink(back_cfg_path_yaml)
 			   fs.unlink(back_cfg_path_yml)
 			end
@@ -142,5 +137,7 @@ o.write = function()
   SYS.call("/usr/share/openclash/openclash.sh >/dev/null 2>&1 &")
   HTTP.redirect(DISP.build_url("admin", "services", "openclash"))
 end
+
+m:append(Template("openclash/toolbar_show"))
 
 return m

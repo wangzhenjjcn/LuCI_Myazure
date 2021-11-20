@@ -1,385 +1,478 @@
-local a=require"nixio.fs"
-local o=require"luci.ip"
-local n=require"math"
-local r=require"luci.util"
-local e,i,h,s,t=tonumber,tostring,type,unpack,select
-module"luci.cbi.datatypes"
-_M['or']=function(o,...)
-local e
-for e=1,t('#',...),2 do
-local a=t(e,...)
-local t=t(e+1,...)
-if h(a)~="function"then
-if a==o then
-return true
-end
-e=e-1
-elseif a(o,s(t))then
-return true
-end
-end
-return false
-end
-_M['and']=function(o,...)
-local e
-for e=1,t('#',...),2 do
-local a=t(e,...)
-local t=t(e+1,...)
-if h(a)~="function"then
-if a~=o then
-return false
-end
-e=e-1
-elseif not a(o,s(t))then
-return false
-end
-end
-return true
-end
-function neg(e,...)
-return _M['or'](e:gsub("^%s*!%s*",""),...)
-end
-function list(t,e,a)
-if h(e)~="function"then
-return false
-end
-local o
-for t in t:gmatch("%S+")do
-if not e(t,s(a))then
-return false
-end
-end
-return true
-end
-function bool(e)
-if e=="1"or e=="yes"or e=="on"or e=="true"then
-return true
-elseif e=="0"or e=="no"or e=="off"or e=="false"then
-return true
-elseif e==""or e==nil then
-return true
-end
-return false
-end
-function uinteger(t)
-local e=e(t)
-if e~=nil and n.floor(e)==e and e>=0 then
-return true
-end
-return false
-end
-function integer(t)
-local e=e(t)
-if e~=nil and n.floor(e)==e then
-return true
-end
-return false
-end
-function ufloat(t)
-local e=e(t)
-return(e~=nil and e>=0)
-end
-function float(t)
-return(e(t)~=nil)
-end
-function ipaddr(e)
-return ip4addr(e)or ip6addr(e)
-end
-function ip4addr(e)
-if e then
-return o.IPv4(e)and true or false
-end
-return false
-end
-function ip4prefix(t)
-t=e(t)
-return(t and t>=0 and t<=32)
-end
-function ip6addr(e)
-if e then
-return o.IPv6(e)and true or false
-end
-return false
-end
-function ip6prefix(t)
-t=e(t)
-return(t and t>=0 and t<=128)
-end
-function cidr4(e)
-local t,e=e:match("^([^/]+)/([^/]+)$")
-return ip4addr(t)and ip4prefix(e)
-end
-function cidr6(e)
-local e,t=e:match("^([^/]+)/([^/]+)$")
-return ip6addr(e)and ip6prefix(t)
-end
-function ipnet4(e)
-local e,t=e:match("^([^/]+)/([^/]+)$")
-return ip4addr(e)and ip4addr(t)
-end
-function ipnet6(e)
-local t,e=e:match("^([^/]+)/([^/]+)$")
-return ip6addr(t)and ip6addr(e)
-end
-function ipmask(e)
-return ipmask4(e)or ipmask6(e)
-end
-function ipmask4(e)
-return cidr4(e)or ipnet4(e)or ip4addr(e)
-end
-function ipmask6(e)
-return cidr6(e)or ipnet6(e)or ip6addr(e)
-end
-function ip6hostid(e)
-if e=="eui64"or e=="random"then
-return true
-else
-local e=o.IPv6(e)
-if e and e:prefix()==128 and e:lower("::1:0:0:0:0")then
-return true
-end
-end
-return false
-end
-function port(t)
-t=e(t)
-return(t and t>=0 and t<=65535)
-end
-function portrange(a)
-local t,e=a:match("^(%d+)%-(%d+)$")
-if t and e and port(t)and port(e)then
-return true
-else
-return port(a)
-end
-end
-function macaddr(t)
-if t and t:match(
-"^[a-fA-F0-9]+:[a-fA-F0-9]+:[a-fA-F0-9]+:"..
-"[a-fA-F0-9]+:[a-fA-F0-9]+:[a-fA-F0-9]+$"
-)then
-local a=r.split(t,":")
-for t=1,6 do
-a[t]=e(a[t],16)
-if a[t]<0 or a[t]>255 then
-return false
-end
-end
-return true
-end
-return false
-end
-function hostname(e,t)
-if e and(#e<254)and(
-e:match("^[a-zA-Z_]+$")or
-(e:match("^[a-zA-Z0-9_][a-zA-Z0-9_%-%.]*[a-zA-Z0-9]$")and
-e:match("[^0-9%.]"))
-)then
-return(not t or not e:match("^_"))
-end
-return false
-end
-function host(e,t)
-return hostname(e)or((t==1)and ip4addr(e))or((not(t==1))and ipaddr(e))
-end
-function network(e)
-return uciname(e)or host(e)
-end
-function hostport(e,a)
-local t,e=e:match("^([^:]+):([^:]+)$")
-return not not(t and e and host(t,a)and port(e))
-end
-function ip4addrport(e,t)
-local t,e=e:match("^([^:]+):([^:]+)$")
-return(t and e and ip4addr(t)and port(e))
-end
-function ip4addrport(e)
-local e,t=e:match("^([^:]+):([^:]+)$")
-return(e and t and ip4addr(e)and port(t))
-end
-function ipaddrport(a,o)
-local t,e=a:match("^([^%[%]:]+):([^:]+)$")
-if(t and e and ip4addr(t)and port(e))then
-return true
-elseif(o==1)then
-t,e=a:match("^%[(.+)%]:([^:]+)$")
-if(t and e and ip6addr(t)and port(e))then
-return true
-end
-end
-t,e=a:match("^([^%[%]]+):([^:]+)$")
-return(t and e and ip6addr(t)and port(e))
-end
-function wpakey(e)
-if#e==64 then
-return(e:match("^[a-fA-F0-9]+$")~=nil)
-else
-return(#e>=8)and(#e<=63)
-end
-end
-function wepkey(e)
-if e:sub(1,2)=="s:"then
-e=e:sub(3)
-end
-if(#e==10)or(#e==26)then
-return(e:match("^[a-fA-F0-9]+$")~=nil)
-else
-return(#e==5)or(#e==13)
-end
-end
-function hexstring(e)
-if e then
-return(e:match("^[a-fA-F0-9]+$")~=nil)
-end
-return false
-end
-function hex(a,t)
-t=e(t)
-if a and t~=nil then
-return((a:match("^0x[a-fA-F0-9]+$")~=nil)and(#a<=2+t*2))
-end
-return false
-end
-function base64(e)
-if e then
-return(e:match("^[a-zA-Z0-9/+]+=?=?$")~=nil)and(n.fmod(#e,4)==0)
-end
-return false
-end
-function string(e)
-return true
-end
-function directory(o,e)
-local t=a.stat(o)
-e=e or{}
-if t and not e[t.ino]then
-e[t.ino]=true
-if t.type=="dir"then
-return true
-elseif t.type=="lnk"then
-return directory(a.readlink(o),e)
-end
-end
-return false
-end
-function file(o,t)
-local e=a.stat(o)
-t=t or{}
-if e and not t[e.ino]then
-t[e.ino]=true
-if e.type=="reg"then
-return true
-elseif e.type=="lnk"then
-return file(a.readlink(o),t)
-end
-end
-return false
-end
-function device(o,t)
-local e=a.stat(o)
-t=t or{}
-if e and not t[e.ino]then
-t[e.ino]=true
-if e.type=="chr"or e.type=="blk"then
-return true
-elseif e.type=="lnk"then
-return device(a.readlink(o),t)
-end
-end
-return false
-end
-function uciname(e)
-return(e:match("^[a-zA-Z0-9_]+$")~=nil)
-end
-function range(t,a,o)
-t=e(t)
-a=e(a)
-o=e(o)
-if t~=nil and a~=nil and o~=nil then
-return((t>=a)and(t<=o))
-end
-return false
-end
-function min(t,a)
-t=e(t)
-a=e(a)
-if t~=nil and a~=nil then
-return(t>=a)
-end
-return false
-end
-function max(a,t)
-a=e(a)
-t=e(t)
-if a~=nil and t~=nil then
-return(a<=t)
-end
-return false
-end
-function rangelength(t,o,a)
-t=i(t)
-o=e(o)
-a=e(a)
-if t~=nil and o~=nil and a~=nil then
-return((#t>=o)and(#t<=a))
-end
-return false
-end
-function minlength(t,a)
-t=i(t)
-a=e(a)
-if t~=nil and a~=nil then
-return(#t>=a)
-end
-return false
-end
-function maxlength(t,a)
-t=i(t)
-a=e(a)
-if t~=nil and a~=nil then
-return(#t<=a)
-end
-return false
-end
-function phonedigit(e)
-return(e:match("^[0-9\*#!%.]+$")~=nil)
-end
-function timehhmmss(e)
-return(e:match("^[0-6][0-9]:[0-6][0-9]:[0-6][0-9]$")~=nil)
-end
-function dateyyyymmdd(t)
-if t~=nil then
-yearstr,monthstr,daystr=t:match("^(%d%d%d%d)-(%d%d)-(%d%d)$")
-if(yearstr==nil)or(monthstr==nil)or(daystr==nil)then
-return false;
-end
-year=e(yearstr)
-month=e(monthstr)
-day=e(daystr)
-if(year==nil)or(month==nil)or(day==nil)then
-return false;
-end
-local t={31,28,31,30,31,30,31,31,30,31,30,31}
-local function a(e)
-return(e%4==0)and((e%100~=0)or(e%400==0))
-end
-function get_days_in_month(e,o)
-if(e==2)and a(o)then
-return 29
-else
-return t[e]
-end
-end
-if(year<2015)then
-return false
-end
-if((month==0)or(month>12))then
-return false
-end
-if((day==0)or(day>get_days_in_month(month,year)))then
-return false
-end
-return true
-end
-return false
+-- Copyright 2010 Jo-Philipp Wich <jow@openwrt.org>
+-- Copyright 2017 Dan Luedtke <mail@danrl.com>
+-- Licensed to the public under the Apache License 2.0.
+
+local fs = require "nixio.fs"
+local ip = require "luci.ip"
+local math = require "math"
+local util = require "luci.util"
+local tonumber, tostring, type, unpack, select = tonumber, tostring, type, unpack, select
+
+
+module "luci.cbi.datatypes"
+
+
+_M['or'] = function(v, ...)
+	local i
+	for i = 1, select('#', ...), 2 do
+		local f = select(i, ...)
+		local a = select(i+1, ...)
+		if type(f) ~= "function" then
+			if f == v then
+				return true
+			end
+			i = i - 1
+		elseif f(v, unpack(a)) then
+			return true
+		end
+	end
+	return false
+end
+
+_M['and'] = function(v, ...)
+	local i
+	for i = 1, select('#', ...), 2 do
+		local f = select(i, ...)
+		local a = select(i+1, ...)
+		if type(f) ~= "function" then
+			if f ~= v then
+				return false
+			end
+			i = i - 1
+		elseif not f(v, unpack(a)) then
+			return false
+		end
+	end
+	return true
+end
+
+function neg(v, ...)
+	return _M['or'](v:gsub("^%s*!%s*", ""), ...)
+end
+
+function list(v, subvalidator, subargs)
+	if type(subvalidator) ~= "function" then
+		return false
+	end
+	local token
+	for token in v:gmatch("%S+") do
+		if not subvalidator(token, unpack(subargs)) then
+			return false
+		end
+	end
+	return true
+end
+
+function bool(val)
+	if val == "1" or val == "yes" or val == "on" or val == "true" then
+		return true
+	elseif val == "0" or val == "no" or val == "off" or val == "false" then
+		return true
+	elseif val == "" or val == nil then
+		return true
+	end
+
+	return false
+end
+
+function uinteger(val)
+	local n = tonumber(val)
+	if n ~= nil and math.floor(n) == n and n >= 0 then
+		return true
+	end
+
+	return false
+end
+
+function integer(val)
+	local n = tonumber(val)
+	if n ~= nil and math.floor(n) == n then
+		return true
+	end
+
+	return false
+end
+
+function ufloat(val)
+	local n = tonumber(val)
+	return ( n ~= nil and n >= 0 )
+end
+
+function float(val)
+	return ( tonumber(val) ~= nil )
+end
+
+function ipaddr(val)
+	return ip4addr(val) or ip6addr(val)
+end
+
+function ip4addr(val)
+	if val then
+		return ip.IPv4(val) and true or false
+	end
+
+	return false
+end
+
+function ip4prefix(val)
+	val = tonumber(val)
+	return ( val and val >= 0 and val <= 32 )
+end
+
+function ip6addr(val)
+	if val then
+		return ip.IPv6(val) and true or false
+	end
+
+	return false
+end
+
+function ip6prefix(val)
+	val = tonumber(val)
+	return ( val and val >= 0 and val <= 128 )
+end
+
+function cidr4(val)
+	local ip, mask = val:match("^([^/]+)/([^/]+)$")
+
+	return ip4addr(ip) and ip4prefix(mask)
+end
+
+function cidr6(val)
+	local ip, mask = val:match("^([^/]+)/([^/]+)$")
+
+	return ip6addr(ip) and ip6prefix(mask)
+end
+
+function ipnet4(val)
+	local ip, mask = val:match("^([^/]+)/([^/]+)$")
+
+	return ip4addr(ip) and ip4addr(mask)
+end
+
+function ipnet6(val)
+	local ip, mask = val:match("^([^/]+)/([^/]+)$")
+
+	return ip6addr(ip) and ip6addr(mask)
+end
+
+function ipmask(val)
+	return ipmask4(val) or ipmask6(val)
+end
+
+function ipmask4(val)
+	return cidr4(val) or ipnet4(val) or ip4addr(val)
+end
+
+function ipmask6(val)
+	return cidr6(val) or ipnet6(val) or ip6addr(val)
+end
+
+function ip6hostid(val)
+	if val == "eui64" or val == "random" then
+		return true
+	else
+		local addr = ip.IPv6(val)
+		if addr and addr:prefix() == 128 and addr:lower("::1:0:0:0:0") then
+			return true
+		end
+	end
+
+	return false
+end
+
+function port(val)
+	val = tonumber(val)
+	return ( val and val >= 0 and val <= 65535 )
+end
+
+function portrange(val)
+	local p1, p2 = val:match("^(%d+)%-(%d+)$")
+	if p1 and p2 and port(p1) and port(p2) then
+		return true
+	else
+		return port(val)
+	end
+end
+
+function macaddr(val)
+		if val and val:match(
+		"^[a-fA-F0-9]+:[a-fA-F0-9]+:[a-fA-F0-9]+:" ..
+		 "[a-fA-F0-9]+:[a-fA-F0-9]+:[a-fA-F0-9]+$"
+	) then
+		local parts = util.split( val, ":" )
+
+		for i = 1,6 do
+			parts[i] = tonumber( parts[i], 16 )
+			if parts[i] < 0 or parts[i] > 255 then
+				return false
+			end
+		end
+
+		return true
+	end
+
+	return false
+end
+
+function hostname(val, strict)
+	if val and (#val < 254) and (
+	   val:match("^[a-zA-Z_]+$") or
+	   (val:match("^[a-zA-Z0-9_][a-zA-Z0-9_%-%.]*[a-zA-Z0-9]$") and
+	    val:match("[^0-9%.]"))
+	) then
+		return (not strict or not val:match("^_"))
+	end
+	return false
+end
+
+function host(val, ipv4only)
+	return hostname(val) or ((ipv4only == 1) and ip4addr(val)) or ((not (ipv4only == 1)) and ipaddr(val))
+end
+
+function network(val)
+	return uciname(val) or host(val)
+end
+
+function hostport(val, ipv4only)
+	local h, p = val:match("^([^:]+):([^:]+)$")
+	return not not (h and p and host(h, ipv4only) and port(p))
+end
+
+function ip4addrport(val, bracket)
+	local h, p = val:match("^([^:]+):([^:]+)$")
+	return (h and p and ip4addr(h) and port(p))
+end
+
+function ip4addrport(val)
+	local h, p = val:match("^([^:]+):([^:]+)$")
+	return (h and p and ip4addr(h) and port(p))
+end
+
+function ipaddrport(val, bracket)
+	local h, p = val:match("^([^%[%]:]+):([^:]+)$")
+	if (h and p and ip4addr(h) and port(p)) then
+		return true
+	elseif (bracket == 1) then
+		h, p = val:match("^%[(.+)%]:([^:]+)$")
+		if  (h and p and ip6addr(h) and port(p)) then
+			return true
+		end
+	end
+	h, p = val:match("^([^%[%]]+):([^:]+)$")
+	return (h and p and ip6addr(h) and port(p))
+end
+
+function wpakey(val)
+	if #val == 64 then
+		return (val:match("^[a-fA-F0-9]+$") ~= nil)
+	else
+		return (#val >= 8) and (#val <= 63)
+	end
+end
+
+function wepkey(val)
+	if val:sub(1, 2) == "s:" then
+		val = val:sub(3)
+	end
+
+	if (#val == 10) or (#val == 26) then
+		return (val:match("^[a-fA-F0-9]+$") ~= nil)
+	else
+		return (#val == 5) or (#val == 13)
+	end
+end
+
+function hexstring(val)
+	if val then
+		return (val:match("^[a-fA-F0-9]+$") ~= nil)
+	end
+	return false
+end
+
+function hex(val, maxbytes)
+	maxbytes = tonumber(maxbytes)
+	if val and maxbytes ~= nil then
+		return ((val:match("^0x[a-fA-F0-9]+$") ~= nil) and (#val <= 2 + maxbytes * 2))
+	end
+	return false
+end
+
+function base64(val)
+	if val then
+		return (val:match("^[a-zA-Z0-9/+]+=?=?$") ~= nil) and (math.fmod(#val, 4) == 0)
+	end
+	return false
+end
+
+function string(val)
+	return true		-- Everything qualifies as valid string
+end
+
+function directory(val, seen)
+	local s = fs.stat(val)
+	seen = seen or { }
+
+	if s and not seen[s.ino] then
+		seen[s.ino] = true
+		if s.type == "dir" then
+			return true
+		elseif s.type == "lnk" then
+			return directory( fs.readlink(val), seen )
+		end
+	end
+
+	return false
+end
+
+function file(val, seen)
+	local s = fs.stat(val)
+	seen = seen or { }
+
+	if s and not seen[s.ino] then
+		seen[s.ino] = true
+		if s.type == "reg" then
+			return true
+		elseif s.type == "lnk" then
+			return file( fs.readlink(val), seen )
+		end
+	end
+
+	return false
+end
+
+function device(val, seen)
+	local s = fs.stat(val)
+	seen = seen or { }
+
+	if s and not seen[s.ino] then
+		seen[s.ino] = true
+		if s.type == "chr" or s.type == "blk" then
+			return true
+		elseif s.type == "lnk" then
+			return device( fs.readlink(val), seen )
+		end
+	end
+
+	return false
+end
+
+function uciname(val)
+	return (val:match("^[a-zA-Z0-9_]+$") ~= nil)
+end
+
+function range(val, min, max)
+	val = tonumber(val)
+	min = tonumber(min)
+	max = tonumber(max)
+
+	if val ~= nil and min ~= nil and max ~= nil then
+		return ((val >= min) and (val <= max))
+	end
+
+	return false
+end
+
+function min(val, min)
+	val = tonumber(val)
+	min = tonumber(min)
+
+	if val ~= nil and min ~= nil then
+		return (val >= min)
+	end
+
+	return false
+end
+
+function max(val, max)
+	val = tonumber(val)
+	max = tonumber(max)
+
+	if val ~= nil and max ~= nil then
+		return (val <= max)
+	end
+
+	return false
+end
+
+function rangelength(val, min, max)
+	val = tostring(val)
+	min = tonumber(min)
+	max = tonumber(max)
+
+	if val ~= nil and min ~= nil and max ~= nil then
+		return ((#val >= min) and (#val <= max))
+	end
+
+	return false
+end
+
+function minlength(val, min)
+	val = tostring(val)
+	min = tonumber(min)
+
+	if val ~= nil and min ~= nil then
+		return (#val >= min)
+	end
+
+	return false
+end
+
+function maxlength(val, max)
+	val = tostring(val)
+	max = tonumber(max)
+
+	if val ~= nil and max ~= nil then
+		return (#val <= max)
+	end
+
+	return false
+end
+
+function phonedigit(val)
+	return (val:match("^[0-9\*#!%.]+$") ~= nil)
+end
+
+function timehhmmss(val)
+	return (val:match("^[0-6][0-9]:[0-6][0-9]:[0-6][0-9]$") ~= nil)
+end
+
+function dateyyyymmdd(val)
+	if val ~= nil then
+		yearstr, monthstr, daystr = val:match("^(%d%d%d%d)-(%d%d)-(%d%d)$")
+		if (yearstr == nil) or (monthstr == nil) or (daystr == nil) then
+			return false;
+		end
+		year = tonumber(yearstr)
+		month = tonumber(monthstr)
+		day = tonumber(daystr)
+		if (year == nil) or (month == nil) or (day == nil) then
+			return false;
+		end
+
+		local days_in_month = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+
+		local function is_leap_year(year)
+			return (year % 4 == 0) and ((year % 100 ~= 0) or (year % 400 == 0))
+		end
+
+		function get_days_in_month(month, year)
+			if (month == 2) and is_leap_year(year) then
+				return 29
+			else
+				return days_in_month[month]
+			end
+		end
+		if (year < 2015) then
+			return false
+		end
+		if ((month == 0) or (month > 12)) then
+			return false
+		end
+		if ((day == 0) or (day > get_days_in_month(month, year))) then
+			return false
+		end
+		return true
+	end
+	return false
 end

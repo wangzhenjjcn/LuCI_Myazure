@@ -1,15 +1,18 @@
-local e=require"luci.util"
+-- Copyright 2008 Steven Barth <steven@midlink.org>
+-- Licensed to the public under the Apache License 2.0.
+
+local util = require "luci.util"
 module("luci.config",
-function(a)
-if pcall(require,"luci.model.uci")then
-local t=e.threadlocal()
-setmetatable(a,{
-__index=function(a,e)
-if not t[e]then
-t[e]=luci.model.uci.cursor():get_all("luci",e)
-end
-return t[e]
-end
-})
-end
-end)
+		function(m)
+			if pcall(require, "luci.model.uci") then
+				local config = util.threadlocal()
+				setmetatable(m, {
+					__index = function(tbl, key)
+						if not config[key] then
+							config[key] = luci.model.uci.cursor():get_all("luci", key)
+						end
+						return config[key]
+					end
+				})
+			end
+		end)

@@ -1,36 +1,50 @@
-local a=luci.model.network
-local e,e
-for t,e in ipairs({"6in4","6to4","6rd"})do
-local t=a:register_protocol(e)
-function t.get_i18n(t)
-if e=="6in4"then
-return luci.i18n.translate("IPv6-in-IPv4 (RFC4213)")
-elseif e=="6to4"then
-return luci.i18n.translate("IPv6-over-IPv4 (6to4)")
-elseif e=="6rd"then
-return luci.i18n.translate("IPv6-over-IPv4 (6rd)")
-end
-end
-function t.ifname(t)
-return e.."-"..t.sid
-end
-function t.opkg_package(t)
-return e
-end
-function t.is_installed(t)
-return nixio.fs.access("/lib/netifd/proto/"..e..".sh")
-end
-function t.is_floating(e)
-return true
-end
-function t.is_virtual(e)
-return true
-end
-function t.get_interfaces(e)
-return nil
-end
-function t.contains_interface(e,t)
-return(a:ifnameof(ifc)==e:ifname())
-end
-a:register_pattern_virtual("^%s%%-%%w"%e)
+-- Copyright 2011 Jo-Philipp Wich <jow@openwrt.org>
+-- Licensed to the public under the Apache License 2.0.
+
+local netmod = luci.model.network
+
+local _, p
+for _, p in ipairs({"6in4", "6to4", "6rd"}) do
+
+	local proto = netmod:register_protocol(p)
+
+	function proto.get_i18n(self)
+		if p == "6in4" then
+			return luci.i18n.translate("IPv6-in-IPv4 (RFC4213)")
+		elseif p == "6to4" then
+			return luci.i18n.translate("IPv6-over-IPv4 (6to4)")
+		elseif p == "6rd" then
+			return luci.i18n.translate("IPv6-over-IPv4 (6rd)")
+		end
+	end
+
+	function proto.ifname(self)
+		return p .. "-" .. self.sid
+	end
+
+	function proto.opkg_package(self)
+		return p
+	end
+
+	function proto.is_installed(self)
+		return nixio.fs.access("/lib/netifd/proto/" .. p .. ".sh")
+	end
+
+	function proto.is_floating(self)
+		return true
+	end
+
+	function proto.is_virtual(self)
+		return true
+	end
+
+	function proto.get_interfaces(self)
+		return nil
+	end
+
+	function proto.contains_interface(self, ifname)
+		return (netmod:ifnameof(ifc) == self:ifname())
+	end
+
+	netmod:register_pattern_virtual("^%s%%-%%w" % p)
 end

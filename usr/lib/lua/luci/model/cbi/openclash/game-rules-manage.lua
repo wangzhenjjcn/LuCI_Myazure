@@ -10,25 +10,32 @@ local fs = require "luci.openclash"
 local uci = require "luci.model.uci".cursor()
 
 m = SimpleForm("openclash", translate("Game Rules List"))
-m.description=translate("规则项目: SSTap-Rule ( https://github.com/FQrabbit/SSTap-Rule )<br/>")
+m.description=translate("Rule Project:").." SSTap-Rule ( https://github.com/FQrabbit/SSTap-Rule )"
 m.reset = false
 m.submit = false
 
 local t = {
-    {Apply}
+    {Refresh, Apply}
 }
 
 a = m:section(Table, t)
 
-o = a:option(Button, "Apply")
-o.inputtitle = translate("Back Configurations")
+o = a:option(Button, "Refresh", " ")
+o.inputtitle = translate("Refresh Page")
 o.inputstyle = "apply"
 o.write = function()
-  HTTP.redirect(DISP.build_url("admin", "services", "openclash", "game-settings"))
+  HTTP.redirect(DISP.build_url("admin", "services", "openclash", "game-rules-manage"))
+end
+
+o = a:option(Button, "Apply", " ")
+o.inputtitle = translate("Back Settings")
+o.inputstyle = "reset"
+o.write = function()
+  HTTP.redirect(DISP.build_url("admin", "services", "openclash", "rule-providers-settings"))
 end
 
 if not NXFS.access("/tmp/rules_name") then
-   SYS.call("awk -F ',' '{print $1}' /etc/openclash/game_rules.list > /tmp/rules_name 2>/dev/null")
+   SYS.call("awk -F ',' '{print $1}' /usr/share/openclash/res/game_rules.list > /tmp/rules_name 2>/dev/null")
 end
 file = io.open("/tmp/rules_name", "r");
 
@@ -42,14 +49,16 @@ for t,o in ipairs(e) do
 e[t]={}
 e[t].num=string.format(t)
 e[t].name=o
-e[t].filename=string.sub(luci.sys.exec(string.format("grep -F '%s,' /etc/openclash/game_rules.list |awk -F ',' '{print $3}' 2>/dev/null",e[t].name)),1,-2)
+e[t].filename=string.sub(luci.sys.exec(string.format("grep -F '%s,' /usr/share/openclash/res/game_rules.list |awk -F ',' '{print $3}' 2>/dev/null",e[t].name)),1,-2)
 if e[t].filename == "" then
-e[t].filename=string.sub(luci.sys.exec(string.format("grep -F '%s,' /etc/openclash/game_rules.list |awk -F ',' '{print $2}' 2>/dev/null",e[t].name)),1,-2)
+e[t].filename=string.sub(luci.sys.exec(string.format("grep -F '%s,' /usr/share/openclash/res/game_rules.list |awk -F ',' '{print $2}' 2>/dev/null",e[t].name)),1,-2)
 end
 RULE_FILE="/etc/openclash/game_rules/".. e[t].filename
 if fs.mtime(RULE_FILE) then
+e[t].size=fs.filesize(fs.stat(RULE_FILE).size)
 e[t].mtime=os.date("%Y-%m-%d %H:%M:%S",fs.mtime(RULE_FILE))
 else
+e[t].size="/"
 e[t].mtime="/"
 end
 if fs.isfile(RULE_FILE) then
@@ -71,10 +80,11 @@ st=tb:option(DummyValue,"exist",translate("State"))
 st.template="openclash/cfg_check"
 nm=tb:option(DummyValue,"name",translate("Rule Name"))
 fm=tb:option(DummyValue,"filename",translate("File Name"))
+sz=tb:option(DummyValue,"size",translate("Size"))
 mt=tb:option(DummyValue,"mtime",translate("Update Time"))
 
 btnis=tb:option(DummyValue,"filename",translate("Download Rule"))
-btnis.template="openclash/download_game_rule"
+btnis.template="openclash/download_rule"
 
 btnrm=tb:option(Button,"remove",translate("Remove"))
 btnrm.render=function(e,t,a)

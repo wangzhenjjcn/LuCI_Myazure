@@ -1,47 +1,64 @@
-module("luci.controller.admin.uci",package.seeall)
+-- Copyright 2008 Steven Barth <steven@midlink.org>
+-- Copyright 2010-2015 Jo-Philipp Wich <jow@openwrt.org>
+-- Licensed to the public under the Apache License 2.0.
+
+module("luci.controller.admin.uci", package.seeall)
+
 function index()
-local e=luci.http.formvalue("redir",true)or
-luci.dispatcher.build_url(unpack(luci.dispatcher.context.request))
-entry({"admin","uci"},nil,_("Configuration"))
-entry({"admin","uci","changes"},call("action_changes"),_("Changes"),40).query={redir=e}
-entry({"admin","uci","revert"},post("action_revert"),_("Revert"),30).query={redir=e}
-entry({"admin","uci","apply"},post("action_apply"),_("Apply"),20).query={redir=e}
-entry({"admin","uci","saveapply"},post("action_apply"),_("Save &#38; Apply"),10).query={redir=e}
+	local redir = luci.http.formvalue("redir", true) or
+	  luci.dispatcher.build_url(unpack(luci.dispatcher.context.request))
+
+	entry({"admin", "uci"}, nil, _("Configuration"))
+	entry({"admin", "uci", "changes"}, call("action_changes"), _("Changes"), 40).query = {redir=redir}
+	entry({"admin", "uci", "revert"}, post("action_revert"), _("Revert"), 30).query = {redir=redir}
+	entry({"admin", "uci", "apply"}, post("action_apply"), _("Apply"), 20).query = {redir=redir}
+	entry({"admin", "uci", "saveapply"}, post("action_apply"), _("Save &#38; Apply"), 10).query = {redir=redir}
 end
+
 function action_changes()
-local e=luci.model.uci.cursor()
-local e=e:changes()
-luci.template.render("admin_uci/changes",{
-changes=next(e)and e
-})
+	local uci = luci.model.uci.cursor()
+	local changes = uci:changes()
+
+	luci.template.render("admin_uci/changes", {
+		changes = next(changes) and changes
+	})
 end
+
 function action_apply()
-local i=luci.dispatcher.context.path
-local e=luci.model.uci.cursor()
-local a=e:changes()
-local o={}
-for t,a in pairs(a)do
-table.insert(o,t)
-if i[#i]~="apply"then
-e:load(t)
-e:commit(t)
-e:unload(t)
+	local path = luci.dispatcher.context.path
+	local uci = luci.model.uci.cursor()
+	local changes = uci:changes()
+	local reload = {}
+
+	-- Collect files to be applied and commit changes
+	for r, tbl in pairs(changes) do
+		table.insert(reload, r)
+		if path[#path] ~= "apply" then
+			uci:load(r)
+			uci:commit(r)
+			uci:unload(r)
+		end
+	end
+
+	luci.template.render("admin_uci/apply", {
+		changes = next(changes) and changes,
+		configs = reload
+	})
 end
-end
-luci.template.render("admin_uci/apply",{
-changes=next(a)and a,
-configs=o
-})
-end
+
+
 function action_revert()
-local e=luci.model.uci.cursor()
-local t=e:changes()
-for t,a in pairs(t)do
-e:load(t)
-e:revert(t)
-e:unload(t)
-end
-luci.template.render("admin_uci/revert",{
-changes=next(t)and t
-})
+	local uci = luci.model.uci.cursor()
+	local changes = uci:changes()
+
+	-- Collect files to be reverted
+	for r, tbl in pairs(changes) do
+		uci:load(r)
+		uci:revert(r)
+		uci:unload(r)
+	end
+
+	luci.template.render("admin_uci/revert", {
+		changes = next(changes) and changes
+	})
 end

@@ -16,5 +16,5 @@ else
 	distversion = "Development Snapshot"
 end
 
-luciname    = "WangZhenLuCIa"
-luciversion = "j8u2r48uhBETA"
+luciname    = "LuCI Master"
+luciversion = "git-21.280.14233-9b796b1"

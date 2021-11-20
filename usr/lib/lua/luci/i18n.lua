@@ -1,37 +1,55 @@
-module("luci.i18n",package.seeall)
+-- Copyright 2008 Steven Barth <steven@midlink.org>
+-- Licensed to the public under the Apache License 2.0.
+
+module("luci.i18n", package.seeall)
 require("luci.util")
-local e=require"luci.template.parser"
-table={}
-i18ndir=luci.util.libpath().."/i18n/"
-loaded={}
-context=luci.util.threadlocal()
-default="en"
+
+local tparser = require "luci.template.parser"
+
+table   = {}
+i18ndir = luci.util.libpath() .. "/i18n/"
+loaded  = {}
+context = luci.util.threadlocal()
+default = "en"
+
 function clear()
 end
-function load(e,e,e)
+
+function load(file, lang, force)
 end
-function loadc(e,e)
+
+-- Alternatively load the translation of the fallback language.
+function loadc(file, force)
 end
-function setlanguage(t)
-context.lang=t:gsub("_","-")
-context.parent=(context.lang:match("^([a-z][a-z])_"))
-if not e.load_catalog(context.lang,i18ndir)then
-if context.parent then
-e.load_catalog(context.parent,i18ndir)
-return context.parent
+
+function setlanguage(lang)
+	context.lang   = lang:gsub("_", "-")
+	context.parent = (context.lang:match("^([a-z][a-z])_"))
+	if not tparser.load_catalog(context.lang, i18ndir) then
+		if context.parent then
+			tparser.load_catalog(context.parent, i18ndir)
+			return context.parent
+		end
+	end
+	return context.lang
 end
+
+function translate(key)
+	return tparser.translate(key) or key
 end
-return context.lang
+
+function translatef(key, ...)
+	return tostring(translate(key)):format(...)
 end
-function translate(t)
-return e.translate(t)or t
+
+-- and ensure that the returned value is a Lua string value.
+-- This is the same as calling <code>tostring(translate(...))</code>
+function string(key)
+	return tostring(translate(key))
 end
-function translatef(e,...)
-return tostring(translate(e)):format(...)
-end
-function string(e)
-return tostring(translate(e))
-end
-function stringf(e,...)
-return tostring(translate(e)):format(...)
+
+-- Ensure that the returned value is a Lua string value.
+-- This is the same as calling <code>tostring(translatef(...))</code>
+function stringf(key, ...)
+	return tostring(translate(key)):format(...)
 end

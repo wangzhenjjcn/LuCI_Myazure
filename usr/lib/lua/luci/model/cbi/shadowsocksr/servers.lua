@@ -1,107 +1,151 @@
-require"luci.http"
-require"luci.dispatcher"
-require"luci.model.uci"
-local o,t,e
-local n="shadowsocksr"
-local a=luci.model.uci.cursor()
-local i=0
-a:foreach("shadowsocksr","servers",function(e)
-i=i+1
+-- Licensed to the public under the GNU General Public License v3.
+require "luci.http"
+require "luci.dispatcher"
+require "luci.model.uci"
+local m, s, o
+local uci = luci.model.uci.cursor()
+local server_count = 0
+uci:foreach("shadowsocksr", "servers", function(s)
+	server_count = server_count + 1
 end)
-o=Map(n,translate("Servers subscription and manage"))
-t=o:section(TypedSection,"server_subscribe")
-t.anonymous=true
-e=t:option(Flag,"auto_update",translate("Auto Update"))
-e.rmempty=false
-e.description=translate("Auto Update Server subscription, GFW list and CHN route")
-e=t:option(ListValue,"auto_update_time",translate("Update time (every day)"))
-for t=0,23 do
-e:value(t,t..":00")
+
+m = Map("shadowsocksr", translate("Servers subscription and manage"))
+
+-- Server Subscribe
+s = m:section(TypedSection, "server_subscribe")
+s.anonymous = true
+
+o = s:option(Flag, "auto_update", translate("Auto Update"))
+o.rmempty = false
+o.description = translate("Auto Update Server subscription, GFW list and CHN route")
+
+o = s:option(ListValue, "auto_update_time", translate("Update time (every day)"))
+for t = 0, 23 do
+	o:value(t, t .. ":00")
 end
-e.default=2
-e.rmempty=false
-e=t:option(DynamicList,"subscribe_url",translate("Subscribe URL"))
-e.rmempty=true
-e=t:option(Value,"filter_words",translate("Subscribe Filter Words"))
-e.rmempty=true
-e.description=translate("Filter Words splited by /")
-e=t:option(Button,"update_Sub",translate("Update Subscribe List"))
-e.inputstyle="reload"
-e.description=translate("Update subscribe url list first")
-e.write=function()
-luci.http.redirect(luci.dispatcher.build_url("admin","services","shadowsocksr","servers"))
+o.default = 2
+o.rmempty = false
+
+o = s:option(DynamicList, "subscribe_url", translate("Subscribe URL"))
+o.rmempty = true
+
+o = s:option(Value, "filter_words", translate("Subscribe Filter Words"))
+o.rmempty = true
+o.description = translate("Filter Words splited by /")
+
+o = s:option(Value, "save_words", translate("Subscribe Save Words"))
+o.rmempty = true
+o.description = translate("Save Words splited by /")
+
+o = s:option(Button, "update_Sub", translate("Update Subscribe List"))
+o.inputstyle = "reload"
+o.description = translate("Update subscribe url list first")
+o.write = function()
+	uci:commit("shadowsocksr")
+	luci.http.redirect(luci.dispatcher.build_url("admin", "services", "shadowsocksr", "servers"))
 end
-e=t:option(Flag,"switch",translate("Subscribe Default Auto-Switch"))
-e.rmempty=false
-e.description=translate("Subscribe new add server default Auto-Switch on")
-e.default="1"
-e=t:option(Flag,"proxy",translate("Through proxy update"))
-e.rmempty=false
-e.description=translate("Through proxy update list, Not Recommended ")
-e=t:option(Button,"subscribe",translate("Update All Subscribe Severs"))
-e.rawhtml=true
-e.template="shadowsocksr/subscribe"
-e=t:option(Button,"delete",translate("Delete All Subscribe Severs"))
-e.inputstyle="reset"
-e.description=string.format(translate("Server Count")..": %d",i)
-e.write=function()
-a:delete_all("shadowsocksr","servers",function(e)
-if e.hashkey or e.isSubscribe then
-return true
-else
-return false
+
+o = s:option(Flag, "switch", translate("Subscribe Default Auto-Switch"))
+o.rmempty = false
+o.description = translate("Subscribe new add server default Auto-Switch on")
+o.default = "1"
+
+o = s:option(Flag, "proxy", translate("Through proxy update"))
+o.rmempty = false
+o.description = translate("Through proxy update list, Not Recommended ")
+
+o = s:option(Button, "subscribe", translate("Update All Subscribe Severs"))
+o.rawhtml = true
+o.template = "shadowsocksr/subscribe"
+
+o = s:option(Button, "delete", translate("Delete All Subscribe Severs"))
+o.inputstyle = "reset"
+o.description = string.format(translate("Server Count") .. ": %d", server_count)
+o.write = function()
+	uci:delete_all("shadowsocksr", "servers", function(s)
+		if s.hashkey or s.isSubscribe then
+			return true
+		else
+			return false
+		end
+	end)
+	uci:save("shadowsocksr")
+	uci:commit("shadowsocksr")
+	luci.http.redirect(luci.dispatcher.build_url("admin", "services", "shadowsocksr", "delete"))
+	return
 end
-end)
-a:save("shadowsocksr")
-a:commit("shadowsocksr")
-luci.sys.exec("/etc/init.d/shadowsocksr restart")
-luci.http.redirect(luci.dispatcher.build_url("admin","services","shadowsocksr","servers"))
-return
+
+-- [[ Servers Manage ]]--
+s = m:section(TypedSection, "servers")
+s.anonymous = true
+s.addremove = true
+s.template = "cbi/tblsection"
+s.sortable = true
+s.extedit = luci.dispatcher.build_url("admin", "services", "shadowsocksr", "servers", "%s")
+function s.create(...)
+	local sid = TypedSection.create(...)
+	if sid then
+		luci.http.redirect(s.extedit % sid)
+		return
+	end
 end
-t=o:section(TypedSection,"servers")
-t.anonymous=true
-t.addremove=true
-t.template="cbi/tblsection"
-t.sortable=true
-t.extedit=luci.dispatcher.build_url("admin","services","shadowsocksr","servers","%s")
-function t.create(...)
-local a=TypedSection.create(...)
-if a then
-luci.http.redirect(t.extedit%a)
-return
+
+o = s:option(DummyValue, "type", translate("Type"))
+function o.cfgvalue(self, section)
+	return m:get(section, "v2ray_protocol") or Value.cfgvalue(self, section) or translate("None")
 end
+
+o = s:option(DummyValue, "alias", translate("Alias"))
+function o.cfgvalue(...)
+	return Value.cfgvalue(...) or translate("None")
 end
-e=t:option(DummyValue,"type",translate("Type"))
-function e.cfgvalue(...)
-return Value.cfgvalue(...)or""
+
+o = s:option(DummyValue, "server_port", translate("Server Port"))
+function o.cfgvalue(...)
+	return Value.cfgvalue(...) or "N/A"
 end
-e=t:option(DummyValue,"alias",translate("Alias"))
-function e.cfgvalue(...)
-return Value.cfgvalue(...)or translate("None")
+
+o = s:option(DummyValue, "server_port", translate("Socket Connected"))
+o.template = "shadowsocksr/socket"
+o.width = "10%"
+o.render = function(self, section, scope)
+	self.transport = s:cfgvalue(section).transport
+	if self.transport == 'ws' then
+		self.ws_path = s:cfgvalue(section).ws_path
+		self.tls = s:cfgvalue(section).tls
+	end
+	DummyValue.render(self, section, scope)
 end
-e=t:option(DummyValue,"server_port",translate("Server Port"))
-function e.cfgvalue(...)
-return Value.cfgvalue(...)or"N/A"
+
+o = s:option(DummyValue, "server", translate("Ping Latency"))
+o.template = "shadowsocksr/ping"
+o.width = "10%"
+
+local global_server = uci:get_first('shadowsocksr', 'global', 'global_server') 
+
+node = s:option(Button, "apply_node", translate("Apply"))
+node.inputstyle = "apply"
+node.render = function(self, section, scope)
+	if section == global_server then
+		self.title = translate("Reapply")
+	else
+		self.title = translate("Apply")
+	end
+	Button.render(self, section, scope)
 end
-e=t:option(DummyValue,"server_port",translate("Socket Connected"))
-e.template="shadowsocksr/socket"
-e.width="10%"
-e=t:option(DummyValue,"server",translate("Ping Latency"))
-e.template="shadowsocksr/ping"
-e.width="10%"
-node=t:option(Button,"apply_node",translate("Apply"))
-node.inputstyle="apply"
-node.write=function(o,t)
-a:set("shadowsocksr",'@global[0]','global_server',t)
-a:save("shadowsocksr")
-a:commit("shadowsocksr")
-luci.sys.exec("/etc/init.d/shadowsocksr restart")
-luci.http.redirect(luci.dispatcher.build_url("admin","services","shadowsocksr","client"))
+node.write = function(self, section)
+	uci:set("shadowsocksr", '@global[0]', 'global_server', section)
+	uci:save("shadowsocksr")
+	uci:commit("shadowsocksr")
+	luci.http.redirect(luci.dispatcher.build_url("admin", "services", "shadowsocksr", "restart"))
 end
-e=t:option(Flag,"switch_enable",translate("Auto Switch"))
-e.rmempty=false
-function e.cfgvalue(...)
-return Value.cfgvalue(...)or 1
+
+o = s:option(Flag, "switch_enable", translate("Auto Switch"))
+o.rmempty = false
+function o.cfgvalue(...)
+	return Value.cfgvalue(...) or 1
 end
-o:append(Template("shadowsocksr/server_list"))
-return o
+
+m:append(Template("shadowsocksr/server_list"))
+
+return m

@@ -57,6 +57,7 @@ o:value("file")
 
 o = s:option(Value, "name", translate("Provider Name"))
 o.rmempty = false
+o.default = "Proxy-provider - "..sid
 
 o = s:option(ListValue, "path", translate("Provider Path"))
 o.description = translate("Update Your Proxy Provider File From Config Luci Page")
@@ -89,7 +90,8 @@ o:value("true", translate("Enable"))
 o.default=true
 
 o = s:option(Value, "health_check_url", translate("Health Check URL"))
-o.default = "http://www.gstatic.com/generate_204"
+o:value("http://www.gstatic.com/generate_204")
+o:value("https://cp.cloudflare.com/generate_204")
 o.rmempty = false
 
 o = s:option(Value, "health_check_interval", translate("Health Check Interval(s)"))
@@ -99,6 +101,7 @@ o.rmempty = false
 o = s:option(DynamicList, "groups", translate("Proxy Group"))
 o.description = font_red..bold_on..translate("No Need Set when Config Create, The added Proxy Groups Must Exist")..bold_off..font_off
 o.rmempty = true
+o:value("all", translate("All Groups"))
 m.uci:foreach("openclash", "groups",
 		function(s)
 			if s.name ~= "" and s.name ~= nil then
@@ -111,19 +114,19 @@ local t = {
 }
 a = m:section(Table, t)
 
-o = a:option(Button,"Commit")
-o.inputtitle = translate("Commit Configurations")
+o = a:option(Button,"Commit", " ")
+o.inputtitle = translate("Commit Settings")
 o.inputstyle = "apply"
 o.write = function()
    m.uci:commit(openclash)
    luci.http.redirect(m.redirect)
 end
 
-o = a:option(Button,"Back")
-o.inputtitle = translate("Back Configurations")
+o = a:option(Button,"Back", " ")
+o.inputtitle = translate("Back Settings")
 o.inputstyle = "reset"
 o.write = function()
-   m.uci:revert(openclash)
+   m.uci:revert(openclash, sid)
    luci.http.redirect(m.redirect)
 end
 

@@ -1,21 +1,37 @@
-local t,e,t=...
-local n,t,a,o,i
-n=e:taboption("general",Value,"ipaddr",
-translate("Local IPv4 address"),
-translate("Leave empty to use the current WAN address"))
-n.datatype="ip4addr"
-t=e:taboption("advanced",Flag,"defaultroute",
-translate("Use default gateway"),
-translate("If unchecked, no default route is configured"))
-t.default=t.enabled
-a=e:taboption("advanced",Value,"metric",
-translate("Use gateway metric"))
-a.placeholder="0"
-a.datatype="uinteger"
-a:depends("defaultroute",t.enabled)
-o=e:taboption("advanced",Value,"ttl",translate("Use TTL on tunnel interface"))
-o.placeholder="64"
-o.datatype="range(1,255)"
-i=e:taboption("advanced",Value,"mtu",translate("Use MTU on tunnel interface"))
-i.placeholder="1280"
-i.datatype="max(9200)"
+-- Copyright 2011 Jo-Philipp Wich <jow@openwrt.org>
+-- Licensed to the public under the Apache License 2.0.
+
+local map, section, net = ...
+
+local ipaddr, defaultroute, metric, ttl, mtu
+
+
+ipaddr = section:taboption("general", Value, "ipaddr",
+	translate("Local IPv4 address"),
+	translate("Leave empty to use the current WAN address"))
+
+ipaddr.datatype = "ip4addr"
+
+defaultroute = section:taboption("advanced", Flag, "defaultroute",
+	translate("Use default gateway"),
+	translate("If unchecked, no default route is configured"))
+
+defaultroute.default = defaultroute.enabled
+
+
+metric = section:taboption("advanced", Value, "metric",
+	translate("Use gateway metric"))
+
+metric.placeholder = "0"
+metric.datatype    = "uinteger"
+metric:depends("defaultroute", defaultroute.enabled)
+
+
+ttl = section:taboption("advanced", Value, "ttl", translate("Use TTL on tunnel interface"))
+ttl.placeholder = "64"
+ttl.datatype    = "range(1,255)"
+
+
+mtu = section:taboption("advanced", Value, "mtu", translate("Use MTU on tunnel interface"))
+mtu.placeholder = "1280"
+mtu.datatype    = "max(9200)"

@@ -42,11 +42,42 @@ local encrypt_methods_ss = {
 	"xchacha20-ietf-poly1305",
 }
 
+local encrypt_methods_ssr = {
+
+	"rc4-md5",
+	"aes-128-cfb",
+	"aes-192-cfb",
+	"aes-256-cfb",
+	"aes-128-ctr",
+	"aes-192-ctr",
+	"aes-256-ctr",
+	"chacha20-ietf",
+	"xchacha20",
+}
+
 local securitys = {
-    "auto",
-    "none",
-    "aes-128-gcm",
-    "chacha20-poly1305"
+	"auto",
+	"none",
+	"aes-128-gcm",
+	"chacha20-poly1305"
+}
+
+local protocols = {
+	"origin",
+	"auth_sha1_v4",
+	"auth_aes128_md5",
+	"auth_aes128_sha1",
+	"auth_chain_a",
+	"auth_chain_b",
+}
+
+local obfs = {
+	"plain",
+	"http_simple",
+	"http_post",
+	"random_head",
+	"tls1.2_ticket_auth",
+	"tls1.2_ticket_fastauth",
 }
 
 m = Map(openclash, translate("Edit Server"))
@@ -62,6 +93,11 @@ end
 s = m:section(NamedSection, sid, "servers")
 s.anonymous = true
 s.addremove   = false
+
+o = s:option(DummyValue, "server_url", "SS/SSR/VMESS/TROJAN URL")
+o.rawhtml = true
+o.template = "openclash/server_url"
+o.value = sid
 
 o = s:option(ListValue, "config", translate("Config File"))
 o:value("all", translate("Use For All Config File"))
@@ -79,6 +115,7 @@ end
 
 o = s:option(ListValue, "type", translate("Server Node Type"))
 o:value("ss", translate("Shadowsocks"))
+o:value("ssr", translate("ShadowsocksR"))
 o:value("vmess", translate("Vmess"))
 o:value("trojan", translate("trojan"))
 o:value("snell", translate("Snell"))
@@ -88,10 +125,11 @@ o.description = translate("Using incorrect encryption mothod may causes service 
 
 o = s:option(Value, "name", translate("Server Alias"))
 o.rmempty = false
+o.default = "Server - "..sid
 
 o = s:option(Value, "server", translate("Server Address"))
 o.datatype = "host"
-o.rmempty = false
+o.rmempty = true
 
 o = s:option(Value, "port", translate("Server Port"))
 o.datatype = "port"
@@ -102,6 +140,7 @@ o = s:option(Value, "password", translate("Password"))
 o.password = true
 o.rmempty = false
 o:depends("type", "ss")
+o:depends("type", "ssr")
 o:depends("type", "trojan")
 
 o = s:option(Value, "psk", translate("Psk"))
@@ -113,10 +152,31 @@ for _, v in ipairs(encrypt_methods_ss) do o:value(v) end
 o.rmempty = true
 o:depends("type", "ss")
 
+o = s:option(ListValue, "cipher_ssr", translate("Encrypt Method"))
+for _, v in ipairs(encrypt_methods_ssr) do o:value(v) end
+o.rmempty = true
+o:depends("type", "ssr")
+
+o = s:option(ListValue, "protocol", translate("Protocol"))
+for _, v in ipairs(protocols) do o:value(v) end
+o.rmempty = true
+o:depends("type", "ssr")
+
+o = s:option(Value, "protocol_param", translate("Protocol param(optional)"))
+o:depends("type", "ssr")
+
 o = s:option(ListValue, "securitys", translate("Encrypt Method"))
 for _, v in ipairs(securitys) do o:value(v) end
 o.rmempty = true
 o:depends("type", "vmess")
+
+o = s:option(ListValue, "obfs_ssr", translate("Obfs"))
+for _, v in ipairs(obfs) do o:value(v) end
+o.rmempty = true
+o:depends("type", "ssr")
+
+o = s:option(Value, "obfs_param", translate("Obfs param(optional)"))
+o:depends("type", "ssr")
 
 -- AlterId
 o = s:option(Value, "alterId", translate("AlterId"))
@@ -137,6 +197,7 @@ o.default = "false"
 o:value("true")
 o:value("false")
 o:depends("type", "ss")
+o:depends("type", "ssr")
 o:depends("type", "vmess")
 o:depends("type", "socks5")
 o:depends("type", "trojan")
@@ -164,10 +225,13 @@ o.default = "none"
 o:value("none")
 o:value("websocket", translate("websocket (ws)"))
 o:value("http", translate("http"))
+o:value("h2", translate("h2"))
+o:value("grpc", translate("grpc"))
 o:depends("type", "vmess")
 
 o = s:option(Value, "host", translate("obfs-hosts"))
 o.datatype = "host"
+o.placeholder = translate("example.com")
 o.rmempty = true
 o:depends("obfs", "tls")
 o:depends("obfs", "http")
@@ -181,6 +245,17 @@ o.rmempty = true
 o:depends("obfs", "websocket")
 o:depends("obfs_vmess", "websocket")
 
+o = s:option(DynamicList, "h2_host", translate("host"))
+o.rmempty = true
+o.placeholder = translate("http.example.com")
+o.datatype = "host"
+o:depends("obfs_vmess", "h2")
+
+o = s:option(Value, "h2_path", translate("path"))
+o.rmempty = true
+o.default = "/"
+o:depends("obfs_vmess", "h2")
+
 o = s:option(DynamicList, "http_path", translate("path"))
 o.rmempty = true
 o:value("/")
@@ -192,6 +267,22 @@ o.rmempty = true
 o:depends("obfs", "websocket")
 o:depends("obfs_vmess", "websocket")
 
+o = s:option(Value, "ws_opts_path", translate("ws-opts-path"))
+o.rmempty = true
+o:depends("obfs_vmess", "websocket")
+
+o = s:option(Value, "ws_opts_headers", translate("ws-opts-headers"))
+o.rmempty = true
+o:depends("obfs_vmess", "websocket")
+
+o = s:option(Value, "max_early_data", translate("max-early-data"))
+o.rmempty = true
+o:depends("obfs_vmess", "websocket")
+
+o = s:option(Value, "early_data_header_name", translate("early-data-header-name"))
+o.rmempty = true
+o:depends("obfs_vmess", "websocket")
+
 -- [[ skip-cert-verify ]]--
 o = s:option(ListValue, "skip_cert_verify", translate("skip-cert-verify"))
 o.rmempty = true
@@ -201,12 +292,13 @@ o:value("false")
 o:depends("obfs", "websocket")
 o:depends("obfs_vmess", "none")
 o:depends("obfs_vmess", "websocket")
+o:depends("obfs_vmess", "grpc")
 o:depends("type", "socks5")
 o:depends("type", "http")
 o:depends("type", "trojan")
 
 -- [[ TLS ]]--
-o = s:option(ListValue, "tls", translate("TLS"))
+o = s:option(ListValue, "tls", translate("tls"))
 o.rmempty = true
 o.default = "false"
 o:value("true")
@@ -215,8 +307,16 @@ o:depends("obfs", "websocket")
 o:depends("obfs_vmess", "none")
 o:depends("obfs_vmess", "websocket")
 o:depends("obfs_vmess", "http")
+o:depends("obfs_vmess", "grpc")
 o:depends("type", "socks5")
 o:depends("type", "http")
+
+o = s:option(Value, "servername", translate("servername"))
+o.rmempty = true
+o.datatype = "host"
+o.placeholder = translate("example.com")
+o:depends("obfs_vmess", "websocket")
+o:depends("obfs_vmess", "grpc")
 
 o = s:option(Value, "keep_alive", translate("keep-alive"))
 o.rmempty = true
@@ -224,18 +324,6 @@ o.default = "true"
 o:value("true")
 o:value("false")
 o:depends("obfs_vmess", "http")
-
--- 验证用户名
-o = s:option(Value, "auth_name", translate("Auth Username"))
-o:depends("type", "socks5")
-o:depends("type", "http")
-o.rmempty = true
-
--- 验证密码
-o = s:option(Value, "auth_pass", translate("Auth Password"))
-o:depends("type", "socks5")
-o:depends("type", "http")
-o.rmempty = true
 
 -- [[ MUX ]]--
 o = s:option(ListValue, "mux", translate("mux"))
@@ -251,6 +339,19 @@ o.datatype = "host"
 o.placeholder = translate("example.com")
 o.rmempty = true
 o:depends("type", "trojan")
+o:depends("type", "http")
+
+-- 验证用户名
+o = s:option(Value, "auth_name", translate("Auth Username"))
+o:depends("type", "socks5")
+o:depends("type", "http")
+o.rmempty = true
+
+-- 验证密码
+o = s:option(Value, "auth_pass", translate("Auth Password"))
+o:depends("type", "socks5")
+o:depends("type", "http")
+o.rmempty = true
 
 -- [[ alpn ]]--
 o = s:option(DynamicList, "alpn", translate("alpn"))
@@ -259,9 +360,18 @@ o:value("h2")
 o:value("http/1.1")
 o:depends("type", "trojan")
 
+-- [[ grpc ]]--
+o = s:option(Value, "grpc_service_name", translate("grpc-service-name"))
+o.rmempty = true
+o.datatype = "host"
+o.placeholder = translate("example")
+o:depends("type", "trojan")
+o:depends("obfs_vmess", "grpc")
+
 o = s:option(DynamicList, "groups", translate("Proxy Group"))
 o.description = font_red..bold_on..translate("No Need Set when Config Create, The added Proxy Groups Must Exist")..bold_off..font_off
 o.rmempty = true
+o:value("all", translate("All Groups"))
 m.uci:foreach("openclash", "groups",
 		function(s)
 			if s.name ~= "" and s.name ~= nil then
@@ -274,8 +384,8 @@ local t = {
 }
 a = m:section(Table, t)
 
-o = a:option(Button,"Commit")
-o.inputtitle = translate("Commit Configurations")
+o = a:option(Button,"Commit", " ")
+o.inputtitle = translate("Commit Settings")
 o.inputstyle = "apply"
 o.write = function()
    m.uci:commit(openclash)
@@ -283,11 +393,11 @@ o.write = function()
    luci.http.redirect(m.redirect)
 end
 
-o = a:option(Button,"Back")
-o.inputtitle = translate("Back Configurations")
+o = a:option(Button,"Back", " ")
+o.inputtitle = translate("Back Settings")
 o.inputstyle = "reset"
 o.write = function()
-   m.uci:revert(openclash)
+   m.uci:revert(openclash, sid)
    luci.http.redirect(m.redirect)
 end
 

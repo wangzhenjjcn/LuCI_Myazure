@@ -8,14 +8,14 @@
 <%
 local fs   = require "nixio.fs"
 local has_ping6 = fs.access("/bin/ping6") or fs.access("/usr/bin/ping6")
-local has_traceroute6 = fs.access("/usr/bin/traceroute6")
+local has_traceroute6 = fs.access("/bin/traceroute6") or fs.access("/usr/bin/traceroute6")
 
 local dns_host = luci.config.diag and luci.config.diag.dns or "dev.openwrt.org"
 local ping_host = luci.config.diag and luci.config.diag.ping or "dev.openwrt.org"
 local route_host = luci.config.diag and luci.config.diag.route or "dev.openwrt.org"
 %>
 
-<script type="text/javascript" src="<%=resource%>/cbi.js?v=git-20.117.60969-420c61a"></script>
+<script type="text/javascript" src="<%=resource%>/cbi.js?v=git-21.280.14233-9b796b1"></script>
 <script type="text/javascript">//<![CDATA[
 	var stxhr = new XHR();
 

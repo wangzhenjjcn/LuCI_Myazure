@@ -1,86 +1,105 @@
-module("luci.tools.webadmin",package.seeall)
-local s=require"luci.util"
-local n=require"luci.model.uci"
-local i=require"luci.ip"
-function byte_format(e)
-local a={"B","KB","MB","GB","TB"}
-for t=1,5 do
-if e>1024 and t<5 then
-e=e/1024
-else
-return string.format("%.2f %s",e,a[t])
+-- Copyright 2008 Steven Barth <steven@midlink.org>
+-- Copyright 2008-2015 Jo-Philipp Wich <jow@openwrt.org>
+-- Licensed to the public under the Apache License 2.0.
+
+module("luci.tools.webadmin", package.seeall)
+
+local util = require "luci.util"
+local uci  = require "luci.model.uci"
+local ip   = require "luci.ip"
+
+function byte_format(byte)
+	local suff = {"B", "KB", "MB", "GB", "TB"}
+	for i=1, 5 do
+		if byte > 1024 and i < 5 then
+			byte = byte / 1024
+		else
+			return string.format("%.2f %s", byte, suff[i]) 
+		end 
+	end
 end
+
+function date_format(secs)
+	local suff = {"min", "h", "d"}
+	local mins = 0
+	local hour = 0
+	local days = 0
+	
+	secs = math.floor(secs)
+	if secs > 60 then
+		mins = math.floor(secs / 60)
+		secs = secs % 60
+	end
+	
+	if mins > 60 then
+		hour = math.floor(mins / 60)
+		mins = mins % 60
+	end
+	
+	if hour > 24 then
+		days = math.floor(hour / 24)
+		hour = hour % 24
+	end
+	
+	if days > 0 then
+		return string.format("%.0fd %02.0fh %02.0fmin %02.0fs", days, hour, mins, secs)
+	else
+		return string.format("%02.0fh %02.0fmin %02.0fs", hour, mins, secs)
+	end
 end
+
+function cbi_add_networks(field)
+	uci.cursor():foreach("network", "interface",
+		function (section)
+			if section[".name"] ~= "loopback" then
+				field:value(section[".name"])
+			end
+		end
+	)
+	field.titleref = luci.dispatcher.build_url("admin", "network", "network")
 end
-function date_format(e)
-local t={"min","h","d"}
-local t=0
-local a=0
-local o=0
-e=math.floor(e)
-if e>60 then
-t=math.floor(e/60)
-e=e%60
+
+function cbi_add_knownips(field)
+	local _, n
+	for _, n in ipairs(ip.neighbors({ family = 4 })) do
+		if n.dest then
+			field:value(n.dest:string())
+		end
+	end
 end
-if t>60 then
-a=math.floor(t/60)
-t=t%60
+
+function firewall_find_zone(name)
+	local find
+	
+	luci.model.uci.cursor():foreach("firewall", "zone", 
+		function (section)
+			if section.name == name then
+				find = section[".name"]
+			end
+		end
+	)
+	
+	return find
 end
-if a>24 then
-o=math.floor(a/24)
-a=a%24
-end
-if o>0 then
-return string.format("%.0fd %02.0fh %02.0fmin %02.0fs",o,a,t,e)
-else
-return string.format("%02.0fh %02.0fmin %02.0fs",a,t,e)
-end
-end
-function cbi_add_networks(t)
-n.cursor():foreach("network","interface",
-function(e)
-if e[".name"]~="loopback"then
-t:value(e[".name"])
-end
-end
-)
-t.titleref=luci.dispatcher.build_url("admin","network","network")
-end
-function cbi_add_knownips(t)
-local e,e
-for a,e in ipairs(i.neighbors({family=4}))do
-if e.dest then
-t:value(e.dest:string())
-end
-end
-end
-function firewall_find_zone(a)
-local t
-luci.model.uci.cursor():foreach("firewall","zone",
-function(e)
-if e.name==a then
-t=e[".name"]
-end
-end
-)
-return t
-end
-function iface_get_network(e)
-local t=i.link(tostring(e))
-if t.master then
-e=t.master
-end
-local a=n.cursor()
-local t=s.ubus("network.interface","dump",{})
-if t then
-local o,o
-for o,t in ipairs(t.interface)do
-if t.l3_device==e or t.device==e then
-local e=a:get("network",t.interface,"ifname")
-if type(e)=="string"and e:sub(1,1)~="@"or e then
-return t.interface
-end
-end
-end
-end
+
+function iface_get_network(iface)
+	local link = ip.link(tostring(iface))
+	if link.master then
+		iface = link.master
+	end
+
+	local cur = uci.cursor()
+	local dump = util.ubus("network.interface", "dump", { })
+	if dump then
+		local _, net
+		for _, net in ipairs(dump.interface) do
+			if net.l3_device == iface or net.device == iface then
+				-- cross check with uci to filter out @name style aliases
+				local uciname = cur:get("network", net.interface, "ifname")
+				if type(uciname) == "string" and uciname:sub(1,1) ~= "@" or uciname then
+					return net.interface
+				end
+			end
+		end
+	end
 end

@@ -1,15 +1,14 @@
 <%#
  Copyright 2008 Steven Barth <steven@midlink.org>
  Copyright 2008 Jo-Philipp Wich <jow@openwrt.org>
- Copyright 2021 A.Hleb.King <wangzhenjjcn@gmail.com>
  Licensed to the public under the Apache License 2.0.
 -%>
 
 <html>
 	<head>
 		<title><%=luci.sys.hostname()%> - <% if title then %><%=title%><% else %><%:Rebooting...%><% end %></title>
-		<link rel="stylesheet" type="text/css" media="screen" href="<%=media%>/cascade.css?v=git-20.117.60969-420c61a" />
-		<script type="text/javascript" src="<%=resource%>/xhr.js?v=git-20.117.60969-420c61a"></script>
+		<link rel="stylesheet" type="text/css" media="screen" href="<%=media%>/cascade.css?v=git-21.280.14233-9b796b1" />
+		<script type="text/javascript" src="<%=resource%>/xhr.js?v=git-21.280.14233-9b796b1"></script>
 		<script type="text/javascript">//<![CDATA[
 			var interval = window.setInterval(function() {
 				var img = new Image();

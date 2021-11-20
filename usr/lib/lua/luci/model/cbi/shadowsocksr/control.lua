@@ -1,108 +1,143 @@
-require"luci.ip"
-require"nixio.fs"
-local o,t,e
-o=Map("shadowsocksr",translate("IP black-and-white list"))
-t=o:section(TypedSection,"access_control")
-t.anonymous=true
-t:tab("wan_ac",translate("WAN IP AC"))
-e=t:taboption("wan_ac",DynamicList,"wan_bp_ips",translate("WAN White List IP"))
-e.datatype="ip4addr"
-e=t:taboption("wan_ac",DynamicList,"wan_fw_ips",translate("WAN Force Proxy IP"))
-e.datatype="ip4addr"
-t:tab("lan_ac",translate("LAN IP AC"))
-e=t:taboption("lan_ac",ListValue,"lan_ac_mode",translate("LAN Access Control"))
-e:value("0",translate("Disable"))
-e:value("w",translate("Allow listed only"))
-e:value("b",translate("Allow all except listed"))
-e.rmempty=false
-e=t:taboption("lan_ac",DynamicList,"lan_ac_ips",translate("LAN Host List"))
-e.datatype="ipaddr"
-luci.ip.neighbors({family=4},function(t)
-if t.reachable then
-e:value(t.dest:string())
-end
+require "luci.ip"
+require "nixio.fs"
+local m, s, o
+
+m = Map("shadowsocksr")
+
+s = m:section(TypedSection, "access_control")
+s.anonymous = true
+
+-- Interface control
+s:tab("Interface", translate("Interface control"))
+o = s:taboption("Interface", DynamicList, "Interface", translate("Interface"))
+o.template = "cbi/network_netlist"
+o.widget = "checkbox"
+o.nocreate = true
+o.unspecified = true
+o.description = translate("Listen only on the given interface or, if unspecified, on all")
+
+-- Part of WAN
+s:tab("wan_ac", translate("WAN IP AC"))
+
+o = s:taboption("wan_ac", DynamicList, "wan_bp_ips", translate("WAN White List IP"))
+o.datatype = "ip4addr"
+
+o = s:taboption("wan_ac", DynamicList, "wan_fw_ips", translate("WAN Force Proxy IP"))
+o.datatype = "ip4addr"
+
+-- Part of LAN
+s:tab("lan_ac", translate("LAN IP AC"))
+
+o = s:taboption("lan_ac", ListValue, "lan_ac_mode", translate("LAN Access Control"))
+o:value("0", translate("Disable"))
+o:value("w", translate("Allow listed only"))
+o:value("b", translate("Allow all except listed"))
+o.rmempty = false
+
+o = s:taboption("lan_ac", DynamicList, "lan_ac_ips", translate("LAN Host List"))
+o.datatype = "ipaddr"
+luci.ip.neighbors({family = 4}, function(entry)
+	if entry.reachable then
+		o:value(entry.dest:string())
+	end
 end)
-e:depends("lan_ac_mode","w")
-e:depends("lan_ac_mode","b")
-e=t:taboption("lan_ac",DynamicList,"lan_bp_ips",translate("LAN Bypassed Host List"))
-e.datatype="ipaddr"
-luci.ip.neighbors({family=4},function(t)
-if t.reachable then
-e:value(t.dest:string())
-end
+o:depends("lan_ac_mode", "w")
+o:depends("lan_ac_mode", "b")
+
+o = s:taboption("lan_ac", DynamicList, "lan_bp_ips", translate("LAN Bypassed Host List"))
+o.datatype = "ipaddr"
+luci.ip.neighbors({family = 4}, function(entry)
+	if entry.reachable then
+		o:value(entry.dest:string())
+	end
 end)
-e=t:taboption("lan_ac",DynamicList,"lan_fp_ips",translate("LAN Force Proxy Host List"))
-e.datatype="ipaddr"
-luci.ip.neighbors({family=4},function(t)
-if t.reachable then
-e:value(t.dest:string())
-end
+
+o = s:taboption("lan_ac", DynamicList, "lan_fp_ips", translate("LAN Force Proxy Host List"))
+o.datatype = "ipaddr"
+luci.ip.neighbors({family = 4}, function(entry)
+	if entry.reachable then
+		o:value(entry.dest:string())
+	end
 end)
-e=t:taboption("lan_ac",DynamicList,"lan_gm_ips",translate("Game Mode Host List"))
-e.datatype="ipaddr"
-luci.ip.neighbors({family=4},function(t)
-if t.reachable then
-e:value(t.dest:string())
-end
+
+o = s:taboption("lan_ac", DynamicList, "lan_gm_ips", translate("Game Mode Host List"))
+o.datatype = "ipaddr"
+luci.ip.neighbors({family = 4}, function(entry)
+	if entry.reachable then
+		o:value(entry.dest:string())
+	end
 end)
-t:tab("esc",translate("Bypass Domain List"))
-local a="/etc/ssr/white.list"
-e=t:taboption("esc",TextValue,"escconf")
-e.rows=13
-e.wrap="off"
-e.rmempty=true
-e.cfgvalue=function(t,t)
-return nixio.fs.readfile(a)or""
+
+-- Part of Self
+-- s:tab("self_ac", translate("Router Self AC"))
+-- o = s:taboption("self_ac",ListValue, "router_proxy", translate("Router Self Proxy"))
+-- o:value("1", translatef("Normal Proxy"))
+-- o:value("0", translatef("Bypassed Proxy"))
+-- o:value("2", translatef("Forwarded Proxy"))
+-- o.rmempty = false
+
+s:tab("esc", translate("Bypass Domain List"))
+local escconf = "/etc/ssrplus/white.list"
+o = s:taboption("esc", TextValue, "escconf")
+o.rows = 13
+o.wrap = "off"
+o.rmempty = true
+o.cfgvalue = function(self, section)
+	return nixio.fs.readfile(escconf) or ""
 end
-e.write=function(o,o,t)
-nixio.fs.writefile(a,t:gsub("\r\n","\n"))
+o.write = function(self, section, value)
+	nixio.fs.writefile(escconf, value:gsub("\r\n", "\n"))
 end
-e.remove=function(e,e,e)
-nixio.fs.writefile(a,"")
+o.remove = function(self, section, value)
+	nixio.fs.writefile(escconf, "")
 end
-t:tab("block",translate("Black Domain List"))
-local a="/etc/ssr/black.list"
-e=t:taboption("block",TextValue,"blockconf")
-e.rows=13
-e.wrap="off"
-e.rmempty=true
-e.cfgvalue=function(t,t)
-return nixio.fs.readfile(a)or" "
+
+s:tab("block", translate("Black Domain List"))
+local blockconf = "/etc/ssrplus/black.list"
+o = s:taboption("block", TextValue, "blockconf")
+o.rows = 13
+o.wrap = "off"
+o.rmempty = true
+o.cfgvalue = function(self, section)
+	return nixio.fs.readfile(blockconf) or " "
 end
-e.write=function(o,o,t)
-nixio.fs.writefile(a,t:gsub("\r\n","\n"))
+o.write = function(self, section, value)
+	nixio.fs.writefile(blockconf, value:gsub("\r\n", "\n"))
 end
-e.remove=function(e,e,e)
-nixio.fs.writefile(a,"")
+o.remove = function(self, section, value)
+	nixio.fs.writefile(blockconf, "")
 end
-t:tab("netflix",translate("Netflix Domain List"))
-local a="/etc/ssr/netflix.list"
-e=t:taboption("netflix",TextValue,"netflixconf")
-e.rows=13
-e.wrap="off"
-e.rmempty=true
-e.cfgvalue=function(t,t)
-return nixio.fs.readfile(a)or" "
+
+s:tab("denydomain", translate("Deny Domain List"))
+local denydomainconf = "/etc/ssrplus/deny.list"
+o = s:taboption("denydomain", TextValue, "denydomainconf")
+o.rows = 13
+o.wrap = "off"
+o.rmempty = true
+o.cfgvalue = function(self, section)
+	return nixio.fs.readfile(denydomainconf) or " "
 end
-e.write=function(o,o,t)
-nixio.fs.writefile(a,t:gsub("\r\n","\n"))
+o.write = function(self, section, value)
+	nixio.fs.writefile(denydomainconf, value:gsub("\r\n", "\n"))
 end
-e.remove=function(e,e,e)
-nixio.fs.writefile(a,"")
+o.remove = function(self, section, value)
+	nixio.fs.writefile(denydomainconf, "")
 end
-t:tab("netflixip",translate("Netflix IP List"))
-local a="/etc/ssr/netflixip.list"
-e=t:taboption("netflixip",TextValue,"netflixipconf")
-e.rows=13
-e.wrap="off"
-e.rmempty=true
-e.cfgvalue=function(t,t)
-return nixio.fs.readfile(a)or" "
+
+s:tab("netflix", translate("Netflix Domain List"))
+local netflixconf = "/etc/ssrplus/netflix.list"
+o = s:taboption("netflix", TextValue, "netflixconf")
+o.rows = 13
+o.wrap = "off"
+o.rmempty = true
+o.cfgvalue = function(self, section)
+	return nixio.fs.readfile(netflixconf) or " "
 end
-e.write=function(o,o,t)
-nixio.fs.writefile(a,t:gsub("\r\n","\n"))
+o.write = function(self, section, value)
+	nixio.fs.writefile(netflixconf, value:gsub("\r\n", "\n"))
 end
-e.remove=function(e,e,e)
-nixio.fs.writefile(a,"")
+o.remove = function(self, section, value)
+	nixio.fs.writefile(netflixconf, "")
 end
-return o
+
+return m

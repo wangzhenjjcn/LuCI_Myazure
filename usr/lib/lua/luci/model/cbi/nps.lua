@@ -1,10 +1,13 @@
 m=Map("nps")
 m.title=translate("Nps Setting")
 m.description=translate("Nps is a fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet.")
+
 m:section(SimpleSection).template="nps/nps_status"
+
 s=m:section(TypedSection,"nps")
 s.addremove=false
 s.anonymous=true
+
 s:tab("basic",translate("Basic Setting"))
 enable=s:taboption("basic",Flag,"enabled",translate("Enable"))
 enable.rmempty=false
@@ -38,4 +41,5 @@ log_level:value(3,"Error")
 log_level:value(4,"Warning")
 log_level:value(7,"Debug")
 log_level.default="3"
+
 return m

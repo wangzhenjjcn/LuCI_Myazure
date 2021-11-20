@@ -1,123 +1,166 @@
-m=Map("system",translate("<abbr title=\"Light Emitting Diode\">LED</abbr> Configuration"),translate("Customizes the behaviour of the device <abbr title=\"Light Emitting Diode\">LED</abbr>s if possible."))
-local t="/sys/class/leds/"
-local e={}
-local a=require"nixio.fs"
-local o=require"nixio.util"
-local i=require"luci.util"
-if a.access(t)then
-e=o.consume((a.dir(t)))
+-- Copyright 2008 Steven Barth <steven@midlink.org>
+-- Licensed to the public under the Apache License 2.0.
+
+m = Map("system", translate("<abbr title=\"Light Emitting Diode\">LED</abbr> Configuration"), translate("Customizes the behaviour of the device <abbr title=\"Light Emitting Diode\">LED</abbr>s if possible."))
+
+local sysfs_path = "/sys/class/leds/"
+local leds = {}
+
+local fs   = require "nixio.fs"
+local nu   = require "nixio.util"
+local util = require "luci.util"
+
+if fs.access(sysfs_path) then
+	leds = nu.consume((fs.dir(sysfs_path)))
 end
-if#e==0 then
-return m
+
+if #leds == 0 then
+	return m
 end
-s=m:section(TypedSection,"led","")
-s.anonymous=true
-s.addremove=true
-function s.parse(e,...)
-TypedSection.parse(e,...)
-os.execute("/etc/init.d/led enable")
+
+
+s = m:section(TypedSection, "led", "")
+s.anonymous = true
+s.addremove = true
+
+function s.parse(self, ...)
+	TypedSection.parse(self, ...)
+	os.execute("/etc/init.d/led enable")
 end
-s:option(Value,"name",translate("Name"))
-sysfs=s:option(ListValue,"sysfs",translate("<abbr title=\"Light Emitting Diode\">LED</abbr> Name"))
-for t,e in ipairs(e)do
-sysfs:value(e)
+
+
+s:option(Value, "name", translate("Name"))
+
+
+sysfs = s:option(ListValue, "sysfs", translate("<abbr title=\"Light Emitting Diode\">LED</abbr> Name"))
+for k, v in ipairs(leds) do
+	sysfs:value(v)
 end
-s:option(Flag,"default",translate("Default state")).rmempty=false
-trigger=s:option(ListValue,"trigger",translate("Trigger"))
-local e=a.readfile(t..e[1].."/trigger")
-for e in e:gmatch("[%w-]+")do
-trigger:value(e,translate(e:gsub("-","")))
+
+s:option(Flag, "default", translate("Default state")).rmempty = false
+
+
+trigger = s:option(ListValue, "trigger", translate("Trigger"))
+
+local triggers = fs.readfile(sysfs_path .. leds[1] .. "/trigger")
+for t in triggers:gmatch("[%w-]+") do
+	trigger:value(t, translate(t:gsub("-", "")))
 end
-trigger:value("rssi",translate("rssi"))
-delayon=s:option(Value,"delayon",translate("On-State Delay"))
-delayon:depends("trigger","timer")
-delayoff=s:option(Value,"delayoff",translate("Off-State Delay"))
-delayoff:depends("trigger","timer")
-dev=s:option(ListValue,"_net_dev",translate("Device"))
-dev.rmempty=true
+trigger:value("rssi", translate("rssi"))
+
+delayon = s:option(Value, "delayon", translate ("On-State Delay"))
+delayon:depends("trigger", "timer")
+
+delayoff = s:option(Value, "delayoff", translate ("Off-State Delay"))
+delayoff:depends("trigger", "timer")
+
+
+dev = s:option(ListValue, "_net_dev", translate("Device"))
+dev.rmempty = true
 dev:value("")
-dev:depends("trigger","netdev")
-function dev.cfgvalue(t,e)
-return m.uci:get("system",e,"dev")
+dev:depends("trigger", "netdev")
+
+function dev.cfgvalue(self, section)
+	return m.uci:get("system", section, "dev")
 end
-function dev.write(a,t,e)
-m.uci:set("system",t,"dev",e)
+
+function dev.write(self, section, value)
+	m.uci:set("system", section, "dev", value)
 end
-function dev.remove(e,t)
-local e=trigger:formvalue(t)
-if e~="netdev"and e~="usbdev"then
-m.uci:delete("system",t,"dev")
+
+function dev.remove(self, section)
+	local t = trigger:formvalue(section)
+	if t ~= "netdev" and t ~= "usbdev" then
+		m.uci:delete("system", section, "dev")
+	end
 end
+
+for k, v in pairs(luci.sys.net.devices()) do
+	if v ~= "lo" then
+		dev:value(v)
+	end
 end
-for t,e in pairs(luci.sys.net.devices())do
-if e~="lo"then
-dev:value(e)
-end
-end
-mode=s:option(MultiValue,"mode",translate("Trigger Mode"))
-mode.rmempty=true
-mode:depends("trigger","netdev")
-mode:value("link",translate("Link On"))
-mode:value("tx",translate("Transmit"))
-mode:value("rx",translate("Receive"))
-usbdev=s:option(ListValue,"_usb_dev",translate("USB Device"))
-usbdev:depends("trigger","usbdev")
-usbdev.rmempty=true
+
+
+mode = s:option(MultiValue, "mode", translate("Trigger Mode"))
+mode.rmempty = true
+mode:depends("trigger", "netdev")
+mode:value("link", translate("Link On"))
+mode:value("tx", translate("Transmit"))
+mode:value("rx", translate("Receive"))
+
+
+usbdev = s:option(ListValue, "_usb_dev", translate("USB Device"))
+usbdev:depends("trigger", "usbdev")
+usbdev.rmempty = true
 usbdev:value("")
-port_mask=s:option(Value,"port_mask",translate("Port Mask"))
-port_mask:depends("trigger","switch0")
-port_mask.rmempty=true
+
+port_mask = s:option(Value, "port_mask", translate("Port Mask"))
+port_mask:depends("trigger", "switch0")
+port_mask.rmempty = true
 port_mask:value("0x01")
 port_mask:value("0x02")
 port_mask:value("0x04")
 port_mask:value("0x08")
 port_mask:value("0x10")
-s:option(DynamicList,"port",translate("USB Port")):depends("trigger","usbport")
-function usbdev.cfgvalue(t,e)
-return m.uci:get("system",e,"dev")
+
+s:option(DynamicList, "port", translate ("USB Port")):depends("trigger", "usbport")
+
+function usbdev.cfgvalue(self, section)
+	return m.uci:get("system", section, "dev")
 end
-function usbdev.write(a,e,t)
-m.uci:set("system",e,"dev",t)
+
+function usbdev.write(self, section, value)
+	m.uci:set("system", section, "dev", value)
 end
-function usbdev.remove(e,t)
-local e=trigger:formvalue(t)
-if e~="netdev"and e~="usbdev"then
-m.uci:delete("system",t,"dev")
+
+function usbdev.remove(self, section)
+	local t = trigger:formvalue(section)
+	if t ~= "netdev" and t ~= "usbdev" then
+		m.uci:delete("system", section, "dev")
+	end
 end
+
+
+usbport = s:option(MultiValue, "port", translate("USB Ports"))
+usbport:depends("trigger", "usbport")
+usbport.rmempty = true
+usbport.widget = "checkbox"
+usbport.cast = "table"
+usbport.size = 1
+
+function usbport.valuelist(self, section)
+	local port, ports = nil, {}
+	for port in util.imatch(m.uci:get("system", section, "port")) do
+		local b, n = port:match("^usb(%d+)-port(%d+)$")
+		if not (b and n) then
+			b, n = port:match("^(%d+)-(%d+)$")
+		end
+		if b and n then
+			ports[#ports+1] = "usb%u-port%u" %{ tonumber(b), tonumber(n) }
+		end
+	end
+	return ports
 end
-usbport=s:option(MultiValue,"port",translate("USB Ports"))
-usbport:depends("trigger","usbport")
-usbport.rmempty=true
-usbport.widget="checkbox"
-usbport.cast="table"
-usbport.size=1
-function usbport.valuelist(t,e)
-local t,a=nil,{}
-for o in i.imatch(m.uci:get("system",e,"port"))do
-local t,e=o:match("^usb(%d+)-port(%d+)$")
-if not(t and e)then
-t,e=o:match("^(%d+)-(%d+)$")
+
+function usbport.validate(self, value)
+	return type(value) == "string" and { value } or value
 end
-if t and e then
-a[#a+1]="usb%u-port%u"%{tonumber(t),tonumber(e)}
+
+
+for p in nixio.fs.glob("/sys/bus/usb/devices/[0-9]*/manufacturer") do
+	local id = p:match("%d+-%d+")
+	local mf = nixio.fs.readfile("/sys/bus/usb/devices/" .. id .. "/manufacturer") or "?"
+	local pr = nixio.fs.readfile("/sys/bus/usb/devices/" .. id .. "/product")      or "?"
+	usbdev:value(id, "%s (%s - %s)" %{ id, mf, pr })
 end
+
+for p in nixio.fs.glob("/sys/bus/usb/devices/*/usb[0-9]*-port[0-9]*") do
+	local bus, port = p:match("usb(%d+)-port(%d+)")
+	if bus and port then
+		usbport:value("usb%u-port%u" %{ tonumber(bus), tonumber(port) },
+		              "Hub %u, Port %u" %{ tonumber(bus), tonumber(port) })
+	end
 end
-return a
-end
-function usbport.validate(t,e)
-return type(e)=="string"and{e}or e
-end
-for e in nixio.fs.glob("/sys/bus/usb/devices/[0-9]*/manufacturer")do
-local e=e:match("%d+-%d+")
-local a=nixio.fs.readfile("/sys/bus/usb/devices/"..e.."/manufacturer")or"?"
-local t=nixio.fs.readfile("/sys/bus/usb/devices/"..e.."/product")or"?"
-usbdev:value(e,"%s (%s - %s)"%{e,a,t})
-end
-for e in nixio.fs.glob("/sys/bus/usb/devices/*/usb[0-9]*-port[0-9]*")do
-local e,t=e:match("usb(%d+)-port(%d+)")
-if e and t then
-usbport:value("usb%u-port%u"%{tonumber(e),tonumber(t)},
-"Hub %u, Port %u"%{tonumber(e),tonumber(t)})
-end
-end
+
 return m

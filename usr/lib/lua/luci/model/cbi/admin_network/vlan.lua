@@ -1,269 +1,363 @@
-m=Map("network",translate("Switch"),translate("The network ports on this device can be combined to several <abbr title=\"Virtual Local Area Network\">VLAN</abbr>s in which computers can communicate directly with each other. <abbr title=\"Virtual Local Area Network\">VLAN</abbr>s are often used to separate different network segments. Often there is by default one Uplink port for a connection to the next greater network like the internet and other ports for a local network."))
-local e=require"nixio.fs"
-local e=require"luci.model.network"
-local c={}
-e.init(m.uci)
-local f=e:get_switch_topologies()or{}
-local v=function(n,o)
-local t={}
-m.uci:foreach("network","interface",function(a)
-local s=m.uci:get("network",a[".name"],"ifname")
-local e={}
-local i
-local i=false
-for t in luci.util.imatch(s)do
-if t==n then
-e[#e+1]=o
-i=true
-else
-e[#e+1]=t
+-- Copyright 2008 Steven Barth <steven@midlink.org>
+-- Copyright 2010-2011 Jo-Philipp Wich <jow@openwrt.org>
+-- Licensed to the public under the Apache License 2.0.
+
+m = Map("network", translate("Switch"), translate("The network ports on this device can be combined to several <abbr title=\"Virtual Local Area Network\">VLAN</abbr>s in which computers can communicate directly with each other. <abbr title=\"Virtual Local Area Network\">VLAN</abbr>s are often used to separate different network segments. Often there is by default one Uplink port for a connection to the next greater network like the internet and other ports for a local network."))
+
+local fs = require "nixio.fs"
+local nw = require "luci.model.network"
+local switches = { }
+
+nw.init(m.uci)
+
+local topologies = nw:get_switch_topologies() or {}
+
+local update_interfaces = function(old_ifname, new_ifname)
+	local info = { }
+
+	m.uci:foreach("network", "interface", function(section)
+		local old_ifnames = m.uci:get("network", section[".name"], "ifname")
+		local new_ifnames = { }
+		local cur_ifname
+		local changed = false
+		for cur_ifname in luci.util.imatch(old_ifnames) do
+			if cur_ifname == old_ifname then
+				new_ifnames[#new_ifnames+1] = new_ifname
+				changed = true
+			else
+				new_ifnames[#new_ifnames+1] = cur_ifname
+			end
+		end
+		if changed then
+			m.uci:set("network", section[".name"], "ifname", table.concat(new_ifnames, " "))
+
+			info[#info+1] = translatef("Interface %q device auto-migrated from %q to %q.",
+				section[".name"], old_ifname, new_ifname)
+		end
+	end)
+
+	if #info > 0 then
+		m.message = (m.message and m.message .. "\n" or "") .. table.concat(info, "\n")
+	end
 end
-end
-if i then
-m.uci:set("network",a[".name"],"ifname",table.concat(e," "))
-t[#t+1]=translatef("Interface %q device auto-migrated from %q to %q.",
-a[".name"],n,o)
-end
-end)
-if#t>0 then
-m.message=(m.message and m.message.."\n"or"")..table.concat(t,"\n")
-end
-end
-m.uci:foreach("network","switch",
-function(o)
-local p=o['.name']
-local t=o.name or p
-local d=nil
-local r=nil
-local a=nil
-local u=nil
-local y=nil
-local h=0
-local e=16
-local l=16
-local i
-local w=false
-local n=f[t]
-if not n then
-m.message=translatef("Switch %q has an unknown topology - the VLAN settings might not be accurate.",t)
-n={
-ports={
-{num=0,label="Port 1"},
-{num=1,label="Port 2"},
-{num=2,label="Port 3"},
-{num=3,label="Port 4"},
-{num=4,label="Port 5"},
-{num=5,label="CPU (eth0)",tagged=false}
-}
-}
-end
-local f=io.popen("swconfig dev %q help 2>/dev/null"%t)
-if f then
-local o=false
-local t=false
-while true do
-local e=f:read("*l")
-if not e then break end
-if e:match("^%s+%-%-vlan")then
-t=true
-elseif e:match("^%s+%-%-port")then
-t=false
-o=true
-elseif e:match("cpu @")then
-i=e:match("^switch%d: %w+%((.-)%)")
-l=tonumber(e:match("vlans: (%d+)"))or 16
-h=1
-elseif e:match(": pvid")or e:match(": tag")or e:match(": vid")then
-if t then a=e:match(": (%w+)")end
-elseif e:match(": enable_vlan4k")then
-w=true
-elseif e:match(": enable_vlan")then
-d="enable_vlan"
-elseif e:match(": enable_learning")then
-r="enable_learning"
-elseif e:match(": enable_mirror_rx")then
-y="enable_mirror_rx"
-elseif e:match(": max_length")then
-u="max_length"
-end
-end
-f:close()
-end
-s=m:section(NamedSection,o['.name'],"switch",
-i and translatef("Switch %q (%s)",t,i)
-or translatef("Switch %q",t))
-s.addremove=false
-if d then
-s:option(Flag,d,translate("Enable VLAN functionality"))
-end
-if r then
-o=s:option(Flag,r,translate("Enable learning and aging"))
-o.default=o.enabled
-end
-if u then
-o=s:option(Flag,u,translate("Enable Jumbo Frame passthrough"))
-o.enabled="3"
-o.rmempty=true
-end
-if y then
-s:option(Flag,"enable_mirror_rx",translate("Enable mirroring of incoming packets"))
-s:option(Flag,"enable_mirror_tx",translate("Enable mirroring of outgoing packets"))
-local a=s:option(ListValue,"mirror_source_port",translate("Mirror source port"))
-local t=s:option(ListValue,"mirror_monitor_port",translate("Mirror monitor port"))
-a:depends("enable_mirror_tx","1")
-a:depends("enable_mirror_rx","1")
-t:depends("enable_mirror_tx","1")
-t:depends("enable_mirror_rx","1")
-local e,e
-for o,e in ipairs(n.ports)do
-a:value(e.num,e.label)
-t:value(e.num,e.label)
-end
-end
-s=m:section(TypedSection,"switch_vlan",
-i and translatef("VLANs on %q (%s)",t,i)
-or translatef("VLANs on %q",t))
-s.template="cbi/tblsection"
-s.addremove=true
-s.anonymous=true
-s.filter=function(a,e)
-local e=m:get(e,"device")
-return(e and e==t)
-end
-s.cfgsections=function(e)
-local e=TypedSection.cfgsections(e)
-local t={}
-local o
-for a,e in luci.util.spairs(
-e,
-function(t,o)
-return(tonumber(m:get(e[t],a or"vlan"))or 9999)
-<(tonumber(m:get(e[o],a or"vlan"))or 9999)
-end
-)do
-t[#t+1]=e
-end
-return t
-end
-s.create=function(e,o,i)
-if m:get(i,"device")~=t then
-return
-end
-local e=TypedSection.create(e,o)
-local n=0
-local o=0
-m.uci:foreach("network","switch_vlan",
-function(i)
-if i.device==t then
-local e=tonumber(i.vlan)
-local t=a and tonumber(i[a])
-if e~=nil and e>n then n=e end
-if t~=nil and t>o then o=t end
-end
-end)
-m:set(e,"device",t)
-m:set(e,"vlan",n+1)
-if a then
-m:set(e,a,o+1)
-end
-return e
-end
-local i={}
-local o={}
-local d=function(a,e)
-local t
-for e in(m:get(e,"ports")or""):gmatch("%w+")do
-local t,e=e:match("^(%d+)([tu]*)")
-if t==a.option then return(#e>0)and e or"u"end
-end
-return""
-end
-local r=function(e,t,a)
-if t=="u"then
-if not o[e.option]then
-o[e.option]=true
-else
-return nil,
-translatef("%s is untagged in multiple VLANs!",e.title)
-end
-end
-return t
-end
-local o=s:option(Value,a or"vlan","VLAN ID","<div id='portstatus-%s'></div>"%t)
-local e=a and 4094 or(l-1)
-o.rmempty=false
-o.forcewrite=true
-o.vlan_used={}
-o.datatype="and(uinteger,range("..h..","..e.."))"
-o.validate=function(t,i,e)
-local e=tonumber(i)
-local a=a and 4094 or(l-1)
-if e~=nil and e>=h and e<=a then
-if not t.vlan_used[e]then
-t.vlan_used[e]=true
-return i
-else
-return nil,
-translatef("Invalid VLAN ID given! Only unique IDs are allowed")
-end
-else
-return nil,
-translatef("Invalid VLAN ID given! Only IDs between %d and %d are allowed.",h,a)
-end
-end
-o.write=function(s,t,n)
-local e
-local a={}
-for o,e in ipairs(i)do
-local o=e:formvalue(t)
-if o=="t"then
-a[#a+1]=e.option..o
-elseif o=="u"then
-a[#a+1]=e.option
-end
-if e.info and e.info.device then
-local a=e:cfgvalue(t)
-local t=s:cfgvalue(t)
-if a~=o or t~=n then
-local t=(a=="u")and e.info.device
-or"%s.%s"%{e.info.device,t}
-local e=(o=="u")and e.info.device
-or"%s.%s"%{e.info.device,n}
-if t~=e then
-v(t,e)
-end
-end
-end
-end
-if w then
-m:set(p,"enable_vlan4k","1")
-end
-m:set(t,"ports",table.concat(a," "))
-return Value.write(s,t,n)
-end
-o.cfgvalue=function(t,e)
-return m:get(e,a or"vlan")
-or m:get(e,"vlan")
-end
-local e,e
-for e,a in ipairs(n.ports)do
-local e=s:option(ListValue,tostring(a.num),a.label,'<div id="portstatus-%s-%d"></div>'%{t,a.num})
-e:value("",translate("off"))
-if not a.tagged then
-e:value("u",translate("untagged"))
-end
-e:value("t",translate("tagged"))
-e.cfgvalue=d
-e.validate=r
-e.write=function()end
-e.info=a
-i[#i+1]=e
-end
-table.sort(i,function(t,e)return t.option<e.option end)
-c[#c+1]=t
-end
+
+m.uci:foreach("network", "switch",
+	function(x)
+		local sid         = x['.name']
+		local switch_name = x.name or sid
+		local has_vlan    = nil
+		local has_learn   = nil
+		local has_vlan4k  = nil
+		local has_jumbo3  = nil
+		local has_mirror  = nil
+		local min_vid     = 0
+		local max_vid     = 16
+		local num_vlans   = 16
+
+		local switch_title
+		local enable_vlan4k = false
+
+		local topo = topologies[switch_name]
+
+		if not topo then
+			m.message = translatef("Switch %q has an unknown topology - the VLAN settings might not be accurate.", switch_name)
+			topo = {
+				ports = {
+					{ num = 0, label = "Port 1" },
+					{ num = 1, label = "Port 2" },
+					{ num = 2, label = "Port 3" },
+					{ num = 3, label = "Port 4" },
+					{ num = 4, label = "Port 5" },
+					{ num = 5, label = "CPU (eth0)", tagged = false }
+				}
+			}
+		end
+
+		-- Parse some common switch properties from swconfig help output.
+		local swc = io.popen("swconfig dev %q help 2>/dev/null" % switch_name)
+		if swc then
+
+			local is_port_attr = false
+			local is_vlan_attr = false
+
+			while true do
+				local line = swc:read("*l")
+				if not line then break end
+
+				if line:match("^%s+%-%-vlan") then
+					is_vlan_attr = true
+
+				elseif line:match("^%s+%-%-port") then
+					is_vlan_attr = false
+					is_port_attr = true
+
+				elseif line:match("cpu @") then
+					switch_title = line:match("^switch%d: %w+%((.-)%)")
+					num_vlans  = tonumber(line:match("vlans: (%d+)")) or 16
+					min_vid    = 1
+
+				elseif line:match(": pvid") or line:match(": tag") or line:match(": vid") then
+					if is_vlan_attr then has_vlan4k = line:match(": (%w+)") end
+
+				elseif line:match(": enable_vlan4k") then
+					enable_vlan4k = true
+
+				elseif line:match(": enable_vlan") then
+					has_vlan = "enable_vlan"
+
+				elseif line:match(": enable_learning") then
+					has_learn = "enable_learning"
+
+				elseif line:match(": enable_mirror_rx") then
+					has_mirror = "enable_mirror_rx"
+
+				elseif line:match(": max_length") then
+					has_jumbo3 = "max_length"
+				end
+			end
+
+			swc:close()
+		end
+
+
+		-- Switch properties
+		s = m:section(NamedSection, x['.name'], "switch",
+			switch_title and translatef("Switch %q (%s)", switch_name, switch_title)
+					      or translatef("Switch %q", switch_name))
+
+		s.addremove = false
+
+		if has_vlan then
+			s:option(Flag, has_vlan, translate("Enable VLAN functionality"))
+		end
+
+		if has_learn then
+			x = s:option(Flag, has_learn, translate("Enable learning and aging"))
+			x.default = x.enabled
+		end
+
+		if has_jumbo3 then
+			x = s:option(Flag, has_jumbo3, translate("Enable Jumbo Frame passthrough"))
+			x.enabled = "3"
+			x.rmempty = true
+		end
+
+		-- Does this switch support port mirroring?
+		if has_mirror then
+			s:option(Flag, "enable_mirror_rx", translate("Enable mirroring of incoming packets"))
+			s:option(Flag, "enable_mirror_tx", translate("Enable mirroring of outgoing packets"))
+
+			local sp = s:option(ListValue, "mirror_source_port", translate("Mirror source port"))
+			local mp = s:option(ListValue, "mirror_monitor_port", translate("Mirror monitor port"))
+
+			sp:depends("enable_mirror_tx", "1")
+			sp:depends("enable_mirror_rx", "1")
+
+			mp:depends("enable_mirror_tx", "1")
+			mp:depends("enable_mirror_rx", "1")
+
+			local _, pt
+			for _, pt in ipairs(topo.ports) do
+				sp:value(pt.num, pt.label)
+				mp:value(pt.num, pt.label)
+			end
+		end
+
+		-- VLAN table
+		s = m:section(TypedSection, "switch_vlan",
+			switch_title and translatef("VLANs on %q (%s)", switch_name, switch_title)
+						  or translatef("VLANs on %q", switch_name))
+
+		s.template = "cbi/tblsection"
+		s.addremove = true
+		s.anonymous = true
+
+		-- Filter by switch
+		s.filter = function(self, section)
+			local device = m:get(section, "device")
+			return (device and device == switch_name)
+		end
+
+		-- Override cfgsections callback to enforce row ordering by vlan id.
+		s.cfgsections = function(self)
+			local osections = TypedSection.cfgsections(self)
+			local sections = { }
+			local section
+
+			for _, section in luci.util.spairs(
+				osections,
+				function(a, b)
+					return (tonumber(m:get(osections[a], has_vlan4k or "vlan") or "") or 9999)
+						<  (tonumber(m:get(osections[b], has_vlan4k or "vlan") or "") or 9999)
+				end
+			) do
+				sections[#sections+1] = section
+			end
+
+			return sections
+		end
+
+		-- When creating a new vlan, preset it with the highest found vid + 1.
+		s.create = function(self, section, origin)
+			-- Filter by switch
+			if m:get(origin, "device") ~= switch_name then
+				return
+			end
+
+			local sid = TypedSection.create(self, section)
+
+			local max_nr = 0
+			local max_id = 0
+
+			m.uci:foreach("network", "switch_vlan",
+				function(s)
+					if s.device == switch_name then
+						local nr = tonumber(s.vlan)
+						local id = has_vlan4k and tonumber(s[has_vlan4k])
+						if nr ~= nil and nr > max_nr then max_nr = nr end
+						if id ~= nil and id > max_id then max_id = id end
+					end
+				end)
+
+			m:set(sid, "device", switch_name)
+			m:set(sid, "vlan", max_nr + 1)
+
+			if has_vlan4k then
+				m:set(sid, has_vlan4k, max_id + 1)
+			end
+
+			return sid
+		end
+
+
+		local port_opts = { }
+		local untagged  = { }
+
+		-- Parse current tagging state from the "ports" option.
+		local portvalue = function(self, section)
+			local pt
+			for pt in (m:get(section, "ports") or ""):gmatch("%w+") do
+				local pc, tu = pt:match("^(%d+)([tu]*)")
+				if pc == self.option then return (#tu > 0) and tu or "u" end
+			end
+			return ""
+		end
+
+		-- Validate port tagging. Ensure that a port is only untagged once,
+		-- bail out if not.
+		local portvalidate = function(self, value, section)
+			-- ensure that the ports appears untagged only once
+			if value == "u" then
+				if not untagged[self.option] then
+					untagged[self.option] = true
+				else
+					return nil,
+						translatef("%s is untagged in multiple VLANs!", self.title)
+				end
+			end
+			return value
+		end
+
+
+		local vid = s:option(Value, has_vlan4k or "vlan", "VLAN ID", "<div id='portstatus-%s'></div>" % switch_name)
+		local mx_vid = has_vlan4k and 4094 or (num_vlans - 1)
+
+		vid.rmempty = false
+		vid.forcewrite = true
+		vid.vlan_used = { }
+		vid.datatype = "and(uinteger,range("..min_vid..","..mx_vid.."))"
+
+		-- Validate user provided VLAN ID, make sure its within the bounds
+		-- allowed by the switch.
+		vid.validate = function(self, value, section)
+			local v = tonumber(value)
+			local m = has_vlan4k and 4094 or (num_vlans - 1)
+			if v ~= nil and v >= min_vid and v <= m then
+				if not self.vlan_used[v] then
+					self.vlan_used[v] = true
+					return value
+				else
+					return nil,
+						translatef("Invalid VLAN ID given! Only unique IDs are allowed")
+				end
+			else
+				return nil,
+					translatef("Invalid VLAN ID given! Only IDs between %d and %d are allowed.", min_vid, m)
+			end
+		end
+
+		-- When writing the "vid" or "vlan" option, serialize the port states
+		-- as well and write them as "ports" option to uci.
+		vid.write = function(self, section, new_vid)
+			local o
+			local p = { }
+			for _, o in ipairs(port_opts) do
+				local new_tag = o:formvalue(section)
+				if new_tag == "t" then
+					p[#p+1] = o.option .. new_tag
+				elseif new_tag == "u" then
+					p[#p+1] = o.option
+				end
+
+				if o.info and o.info.device then
+					local old_tag = o:cfgvalue(section)
+					local old_vid = self:cfgvalue(section)
+					if old_tag ~= new_tag or old_vid ~= new_vid then
+						local old_ifname = (old_tag == "u") and o.info.device
+							or "%s.%s" %{ o.info.device, old_vid }
+
+						local new_ifname = (new_tag == "u") and o.info.device
+							or "%s.%s" %{ o.info.device, new_vid }
+
+						if old_ifname ~= new_ifname then
+							update_interfaces(old_ifname, new_ifname)
+						end
+					end
+				end
+			end
+
+			if enable_vlan4k then
+				m:set(sid, "enable_vlan4k", "1")
+			end
+
+			m:set(section, "ports", table.concat(p, " "))
+			return Value.write(self, section, new_vid)
+		end
+
+		-- Fallback to "vlan" option if "vid" option is supported but unset.
+		vid.cfgvalue = function(self, section)
+			return m:get(section, has_vlan4k or "vlan")
+				or m:get(section, "vlan")
+		end
+
+		local _, pt
+		for _, pt in ipairs(topo.ports) do
+			local po = s:option(ListValue, tostring(pt.num), pt.label, '<div id="portstatus-%s-%d"></div>' %{ switch_name, pt.num })
+
+			po:value("",  translate("off"))
+
+			if not pt.tagged then
+				po:value("u", translate("untagged"))
+			end
+
+			po:value("t", translate("tagged"))
+
+			po.cfgvalue = portvalue
+			po.validate = portvalidate
+			po.write    = function() end
+			po.info     = pt
+
+			port_opts[#port_opts+1] = po
+		end
+
+		table.sort(port_opts, function(a, b) return a.option < b.option end)
+		switches[#switches+1] = switch_name
+	end
 )
-s=m:section(SimpleSection)
-s.template="admin_network/switch_status"
-s.switches=c
+
+-- Switch status template
+s = m:section(SimpleSection)
+s.template = "admin_network/switch_status"
+s.switches = switches
+
 return m
