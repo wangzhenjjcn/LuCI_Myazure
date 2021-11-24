@@ -11,7 +11,6 @@
  *      Copyright 2008 Steven Barth <steven@midlink.org>
  *      Copyright 2008 Jo-Philipp Wich <jow@openwrt.org>
  *      Copyright 2012 David Menting <david@nut-bolt.nl>
- *      Copyright 2021 A.Hleb.King <wangzhenjjcn@gmail.com>
  *
  *  MUI:
  *      https://github.com/muicss/mui
@@ -48,7 +47,7 @@
     --gray-dark: #32325d;
     --light: #ced4da;
     --lighter: #e9ecef;
-    --primary: #3e3e3e;
+    --primary: #5e72e4;
     --secondary: #f7fafc;
     --success: #2dce89;
     --info: #11cdef;
@@ -252,7 +251,7 @@ body {
 .cbi-button-down,
 .main>.loading {
 
-    background: linear-gradient(87deg, #3e3e3e 0, #3e3e3e 100%) !important;
+    background: linear-gradient(87deg, #5e72e4 0, #5e72e4 100%) !important;
 }
 
 .sk-folding-cube {
@@ -559,7 +558,7 @@ fieldset>fieldset {
 #conns>div>div,
 #memtotal>div>div {
     height: 100% !important;
-    background-color: #3e3e3e !important;
+    background-color: #5e72e4 !important;
 }
 
 /* fix multiple table */
@@ -877,9 +876,9 @@ input[type="checkbox"] {
 }
 
 input[type="checkbox"]:checked {
-    border: 1px solid #3e3e3e;
+    border: 1px solid #5e72e4;
     background-image: url('data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 8 8\'%3e%3cpath fill=\'%23fff\' d=\'M6.564.75l-3.59 3.612-1.538-1.55L0 4.26 2.974 7.25 8 2.193z\'/%3e%3c/svg%3e') !important;
-    background-color: #3e3e3e;
+    background-color: #5e72e4;
     background-size: 70%;
     background-repeat: no-repeat;
     background-position: center;
@@ -904,9 +903,9 @@ ul li .cbi-input-checkbox {
 }
 
 .cbi-input-radio:checked {
-    border: 1px solid #3e3e3e;
+    border: 1px solid #5e72e4;
     background-image: url('data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'-4 -4 8 8\'%3e%3ccircle r=\'3\' fill=\'%23fff\'/%3e%3c/svg%3e') !important;
-    background-color: #3e3e3e;
+    background-color: #5e72e4;
     background-size: 70%;
     background-repeat: no-repeat;
     background-position: center;
@@ -1456,7 +1455,7 @@ input {
 
 select:not([multiple="multiple"]):focus,
 input:focus {
-    border-color: #3e3e3e;
+    border-color: #5e72e4;
     outline: 0;
     background-color: #fff;
     box-shadow: 0 3px 9px rgba(50, 50, 9, 0), 3px 4px 8px rgba(94, 114, 228, .1);
@@ -1484,7 +1483,7 @@ hr {
 }
 
 .bg-primary {
-    background-color: #3e3e3e !important;
+    background-color: #5e72e4 !important;
 }
 
 header,
@@ -1502,7 +1501,7 @@ header::after {
     position: absolute;
     height: 14rem;
     width: 100%;
-    background-color: #3e3e3e !important;
+    background-color: #5e72e4 !important;
 }
 
 .kpi {
@@ -1546,7 +1545,7 @@ footer>a {
     display: block;
     text-align: center;
     margin-top: 2rem;
-    color: #3e3e3e;
+    color: #5e72e4;
     font-size: 2rem;
 }
 
@@ -1754,7 +1753,7 @@ div>.table>.tbody>.tr:nth-of-type(2n) {
 }
 
 .notice {
-    background-color: #3e3e3e !important;
+    background-color: #5e72e4 !important;
     color: #fff !important;
 }
 
@@ -1796,7 +1795,7 @@ div>.table>.tbody>.tr:nth-of-type(2n) {
 
 .main>.main-left>.sidenav-header>.brand {
     font-size: 1.8rem;
-    color: #3e3e3e;
+    color: #5e72e4;
     font-family: "TypoGraphica", sans-serif;
     text-decoration: none;
     padding-left: 0;
@@ -1878,47 +1877,47 @@ div>.table>.tbody>.tr:nth-of-type(2n) {
 
 .main>.main-left>.nav>.slide>.menu[data-title=Status]:before {
     content: "\e906";
-    color: #3e3e3e !important;
+    color: #5e72e4 !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=System]:before {
     content: "\e90a";
-    color: #3e3e3e !important;
+    color: #fb6340 !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=Services]:before {
     content: "\e909";
-    color: #3e3e3e !important;
+    color: #11cdef !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=NAS]:before {
     content: "\e90c";
-    color: #3e3e3e !important;
+    color: #f3a4b5 !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=VPN]:before {
     content: "\e90b";
-    color: #3e3e3e !important;
+    color: #172b4d !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=Network]:before {
     content: "\e908";
-    color: #3e3e3e !important;
+    color: #8965e0 !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=Bandwidth_Monitor]:before {
     content: "\e90d";
-    color: #3e3e3e !important;
+    color: #2dce89 !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=Docker]:before {
     content: "\e911";
-    color: #3e3e3e !important;
+    color: #6699ff !important;
 }
 
 .main>.main-left>.nav>.slide>.menu[data-title=Logout]:before {
     content: "\e907";
-    color: #3e3e3e !important;
+    color: #32325d !important;
 }
 
 .main>.main-left>.nav>.slide>.menu:after {
@@ -1969,7 +1968,7 @@ header>.fill>.container>.brand {
 
 .main>.main-left>.nav>.slide>.menu.active {
     color: #fff;
-    background: #3e3e3e;
+    background: #5e72e4;
 }
 
 .main>.main-left>.nav>.slide>.menu.active::before {
@@ -2001,7 +2000,7 @@ header>.fill>.container>.brand {
     height: 2px;
     left: 0;
     bottom: 0;
-    background-color: #3e3e3e;
+    background-color: #5e72e4;
     transition: all 0.2s;
 }
 
@@ -2285,8 +2284,8 @@ form.inline+form.inline,
 .cbi-button-edit {
 
     color: #fff !important;
-    background-color: #3e3e3e !important;
-    border-color: #3e3e3e !important;
+    background-color: #5e72e4 !important;
+    border-color: #5e72e4 !important;
 }
 
 .node-services-vssr .ssr-button{
@@ -2448,13 +2447,13 @@ form.inline+form.inline,
 
 .cbi-dropdown[open] {
     position: relative;
-    border-color: #3e3e3e;
+    border-color: #5e72e4;
 }
 
 .cbi-dropdown[open]>ul.dropdown {
     display: block;
     background: #fff;
-    border-color: #3e3e3e;
+    border-color: #5e72e4;
     position: absolute;
     z-index: 1000;
     max-width: none;
@@ -2569,18 +2568,18 @@ select[multiple="multiple"] {
 .tabs>li[class~="active"],
 .tabs>li:hover {
     cursor: pointer;
-    border-bottom: 0.18751rem solid #3e3e3e;
-    color: #3e3e3e;
+    border-bottom: 0.18751rem solid #5e72e4;
+    color: #5e72e4;
     margin-bottom: 0;
 
 }
 
 .tabs>li[class~="active"]>a {
-    color: #3e3e3e;
+    color: #5e72e4;
 }
 
 .tabs>li:hover {
-    border-bottom: 0.18751rem solid #3e3e3e;
+    border-bottom: 0.18751rem solid #5e72e4;
 }
 
 .cbi-tabmenu {
@@ -2915,7 +2914,7 @@ td>.ifacebadge,
 }
 
 .ifacebox-head.active {
-    background: #3e3e3e;
+    background: #5e72e4;
     color: #fff;
 }
 
@@ -3089,7 +3088,7 @@ header>.container>.pull-right>* {
 
 .node-main-login>.main>.main-right>header>.fill>.container>.brand {
     font-size: 2rem;
-    color: #3e3e3e;
+    color: #5e72e4;
     display: none;
 
 }
@@ -4009,7 +4008,7 @@ header>.container>.pull-right>* {
     }
 
     abbr {
-        color: #3e3e3e;
+        color: #5e72e4;
 
     }
 
@@ -4141,7 +4140,7 @@ header>.container>.pull-right>* {
         background-color: #3c3c3c;
     }
     div.cbi-value var, td.cbi-value-field var{
-        color: #3e3e3e;
+        color: #5e72e4;
     }
 
     #diag-rc-output>pre{
