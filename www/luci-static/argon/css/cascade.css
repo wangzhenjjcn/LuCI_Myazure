@@ -3091,6 +3091,53 @@ input[name="nslookup"] {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 body > div > div.main-left > ul > li:nth-child(3){
 	display: none;
 }
+body > div > div.main-left > ul > li:nth-child(4) > ul > li:nth-child(1){
+	display: none;
+}
+#maincontent > div > ul > li.tabmenu-item-servers{
+	display: none;
+}
+#maincontent > div > ul > li.tabmenu-item-advanced {
+	display: none;
+}
+#maincontent > div > ul > li.tabmenu-item-server{
+	display: none;
+}
+
+
+
+
+
+body > div > div.main-left > ul > li:nth-child(4) > ul > li:nth-child(3){
+	display: none;
+}
+body > div > div.main-left > ul > li:nth-child(4) > ul > li:nth-child(4){
+	display: none;
+}
+body > div > div.main-left > ul > li:nth-child(4) > ul > li:nth-child(7){
+	display: none;
+}
+body > div > div.main-left > ul > li:nth-child(5){
+	display: none;
+}
+body > div > div.main-left > ul > li:nth-child(6){
+	display: none;
+}
+
