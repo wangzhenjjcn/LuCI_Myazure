@@ -41,9 +41,10 @@
 </div>
 <footer>
 	<div class="ftc">
-		<a class="luci-link" href="https://github.com/wangzhenjjcn/LuCI_Myazure">Powered by <%= ver.luciname %>
+ <a target="_blank" href="http://wwang.pw:85/">小碗儿数码</a> /
+		<a class="luci-link" href="https://github.com/openwrt/luci">Powered by <%= ver.luciname %>
 			(<%= ver.luciversion %>)</a> /
-		<a href="https://github.com/wangzhenjjcn/LuCI_Myazure">MyazureUI</a> /
+		<a href="https://github.com/jerrykuku/luci-theme-argon">ArgonTheme v1.7.2</a> /
 		<%= ver.distversion %>
 		<% if #categories > 1 then %>
 		<ul class="breadcrumb pull-right" id="modemenu">

@@ -3067,9 +3067,6 @@ input[name="nslookup"] {
     height: auto;
   }
 }
-
-
-
 #maincontent > div > fieldset:nth-child(5) > table > tbody > tr:nth-child(10){
 	display: none;
 }
