@@ -16,5 +16,9 @@ else
 	distversion = "Development Snapshot"
 end
 
-luciname    = "WangZhenLuCIa"
-luciversion = "j8u2r48uhBETA"
+
+
+distname    = "MyazureRouter"
+distversion = "V2.6.4"
+luciname    = "MyazureRUI"
+luciversion = "ysw.vpscn.cloud"

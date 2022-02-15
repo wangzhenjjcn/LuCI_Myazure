@@ -115,7 +115,7 @@
 
 <%+header%>
 
-<script type="text/javascript" src="<%=resource%>/cbi.js?v=git-20.117.60969-420c61a"></script>
+<script type="text/javascript" src="<%=resource%>/cbi.js?v=git-21.337.35737-922353b"></script>
 <script type="text/javascript">//<![CDATA[
 	function progressbar(v, m)
 	{
@@ -140,13 +140,22 @@
 					.format(bss[p+'rate'] / 1000, bss[p+'mhz']),
 		    ht = bss[p+'ht'], vht = bss[p+'vht'],
 			mhz = bss[p+'mhz'], nss = bss[p+'nss'],
-			mcs = bss[p+'mcs'], sgi = bss[p+'short_gi'];
+			mcs = bss[p+'mcs'], sgi = bss[p+'short_gi'],
+			he = bss[p+'he'], he_gi = bss[p+'he_gi'],
+			he_dcm = bss[p+'he_dcm'];
 
 		if (ht || vht) {
 			if (vht) s += ', VHT-MCS %d'.format(mcs);
 			if (nss) s += ', VHT-NSS %d'.format(nss);
 			if (ht)  s += ', MCS %s'.format(mcs);
 			if (sgi) s += ', <%:Short GI%>';
+		}
+		
+		if (he) {
+			s += ', HE-MCS %d'.format(mcs);
+			if (nss) s += ', HE-NSS %d'.format(nss);
+			if (he_gi) s += ', HE-GI %d'.format(he_gi);
+			if (he_dcm) s += ', HE-DCM %d'.format(he_dcm);
 		}
 
 		return s;
@@ -691,7 +700,7 @@
 	<table width="100%" cellspacing="10">
 		<tr><td width="33%"><%:Hostname%></td><td><%=luci.sys.hostname() or "?"%></td></tr>
 		<tr><td width="33%"><%:Model%></td><td><%=pcdata(boardinfo.model or "?")%> <%=luci.sys.exec("cat /etc/bench.log") or " "%></td></tr>
-		<tr><td width="33%"><%:Architecture%></td><td><%=pcdata(boardinfo.system or "?")%> x <%=luci.sys.exec("cat /proc/cpuinfo | grep 'processor' | wc -l") or "1"%></td></tr>
+		<tr><td width="33%"><%:Architecture%></td><td><%=pcdata(boardinfo.system or "ARMv8 Processor")%> x <%=luci.sys.exec("cat /proc/cpuinfo | grep 'processor' | wc -l") or "1"%></td></tr>
 		<tr><td width="33%"><%:Firmware Version%></td><td>
 			<%=pcdata(ver.distname)%> <%=pcdata(ver.distversion)%> /
 			<%=pcdata(ver.luciname)%> (<%=pcdata(ver.luciversion)%>)
@@ -701,6 +710,7 @@
 		<tr><td width="33%"><%:Uptime%></td><td id="uptime">-</td></tr>
 		<tr><td width="33%"><%:Load Average%></td><td id="loadavg">-</td></tr>
 		<tr><td width="33%"><%:CPU usage (%)%></td><td id="cpuusage">-</td></tr>
+	       <tr><td width="33%">技术支持</td><td><a target="_blank" href="https://www.myazure.org/googlevpn/">MyAzureTech</a></td></tr>
 	</table>
 </fieldset>
 
