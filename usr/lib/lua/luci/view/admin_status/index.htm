@@ -115,7 +115,7 @@
 
 <%+header%>
 
-<script type="text/javascript" src="<%=resource%>/cbi.js?v=git-21.337.35737-922353b"></script>
+<script type="text/javascript" src="<%=resource%>/cbi.js?v=git-21.290.05478-604e6db"></script>
 <script type="text/javascript">//<![CDATA[
 	function progressbar(v, m)
 	{
@@ -701,16 +701,13 @@
 		<tr><td width="33%"><%:Hostname%></td><td><%=luci.sys.hostname() or "?"%></td></tr>
 		<tr><td width="33%"><%:Model%></td><td><%=pcdata(boardinfo.model or "?")%> <%=luci.sys.exec("cat /etc/bench.log") or " "%></td></tr>
 		<tr><td width="33%"><%:Architecture%></td><td><%=pcdata(boardinfo.system or "ARMv8 Processor")%> x <%=luci.sys.exec("cat /proc/cpuinfo | grep 'processor' | wc -l") or "1"%></td></tr>
-		<tr><td width="33%"><%:Firmware Version%></td><td>
-			<%=pcdata(ver.distname)%> <%=pcdata(ver.distversion)%> /
-			<%=pcdata(ver.luciname)%> (<%=pcdata(ver.luciversion)%>)
-		</td></tr>
+		<tr><td width="33%"><%:Firmware Version%></td><td>TPSX-V5.6</td></tr>
 		<tr><td width="33%"><%:Kernel Version%></td><td><%=unameinfo.release or "?"%></td></tr>
 		<tr><td width="33%"><%:Local Time%></td><td id="localtime">-</td></tr>
 		<tr><td width="33%"><%:Uptime%></td><td id="uptime">-</td></tr>
 		<tr><td width="33%"><%:Load Average%></td><td id="loadavg">-</td></tr>
 		<tr><td width="33%"><%:CPU usage (%)%></td><td id="cpuusage">-</td></tr>
-	       <tr><td width="33%">技术支持</td><td><a target="_blank" href="https://www.myazure.org/googlevpn/">MyAzureTech</a></td></tr>
+	       <tr><td width="33%"> 技术支持 </td><td><a target="_blank" href="https://www.myazure.org/googlevpn/">My Azure Technology</a></td></tr>
 	</table>
 </fieldset>
 
