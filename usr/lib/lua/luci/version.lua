@@ -16,5 +16,7 @@ else
 	distversion = "Development Snapshot"
 end
 
-luciname    = "WangZhenLuCIa"
-luciversion = "j8u2r48uhBETA"
+distname    = "MyAzureWrt"
+distversion = "HongKong200Mbps"
+luciname    = "LuCI Master"
+luciversion = "git-21.211.30217-03784c3"
